@@ -24,6 +24,9 @@ jobs:
 
     - name: 'Build & Test'
       run: |
+        sudo apt install libsdl2-dev
+        sudo apt install libsdl2-image-dev
+        sudo apt install vulkan-validationlayers-dev
         # Build the project, with its main file included, without unittests
         dub build --compiler=$DC
         # Build and run tests, as defined by `unittest` configuration
