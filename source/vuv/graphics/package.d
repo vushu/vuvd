@@ -1,0 +1,3 @@
+module vuv.graphics;
+
+public import vuv.graphics.window;
