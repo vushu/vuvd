@@ -7,8 +7,8 @@ import bindbc.sdl;
 version (unittest)
 {
     //mixin runTestsMain!("vuv.graphics.vulkan", "vuv.graphics.vulkan.instance");
-    //mixin runTestsMain!("vuv.graphics.vulkan.instance");
-    mixin runTestsMain!("vuv.graphics.vulkan.instance", "vuv.graphics.sdlhelper");
+    mixin runTestsMain!("vuv.graphics.renderer",
+            "vuv.graphics.vulkan.instance", "vuv.graphics.sdlhelper");
 }
 else
 {
