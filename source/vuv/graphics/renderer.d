@@ -22,6 +22,7 @@ void initializeRenderer(ref Renderer renderer, ref Window window)
 }
 
 @Tags("github-actions", "Test renderer")
+@("Testing Renderer")
 unittest
 {
     writelnUt("Testing Renderer");

@@ -5,18 +5,19 @@ import std.stdio;
 import std.conv;
 import std.string : toStringz;
 import std.typecons;
+import unit_threaded : Tags;
 
 version (unittest)
 {
     import unit_threaded;
 
-    struct TestFixture
+    struct TestSDLWindowFixture
     {
         @disable this(this);
 
         ~this()
         {
-            debug writelnUt("Destroying TESTFIXTURE");
+            debug writelnUt("Destroying TestSDLWindowFixture");
             SDL_DestroyWindow(window);
             SDL_Quit();
         }
@@ -25,24 +26,22 @@ version (unittest)
 
     }
 
-    RefCounted!TestFixture getFixture()
+    RefCounted!TestSDLWindowFixture getSDLWindowFixture()
     {
         synchronized
         {
-            if (_initialized)
+            if (_fixture.refCountedStore.isInitialized)
             {
                 return _fixture;
             }
-            _initialized = true;
 
-            _fixture = RefCounted!TestFixture(createSDLWindow("TestFixture", 600, 300));
+            _fixture = RefCounted!TestSDLWindowFixture(createSDLWindow("TestFixture", 600, 300));
             return _fixture;
         }
 
     }
 
-    static bool _initialized;
-    static RefCounted!TestFixture _fixture;
+    static RefCounted!TestSDLWindowFixture _fixture;
 
 }
 
@@ -113,17 +112,15 @@ SDL_Window* createSDLWindow(string title, int width, int height) nothrow @nogc
     return null;
 }
 
+@Tags("getSDLVulkanExtensions")
 @("Test getSDLVulkanExtensions")
 @trusted unittest
 {
-    getSDLVulkanExtensions(getFixture().window).length.shouldBeGreaterThan(1);
-    writelnUt("refcount: ", getFixture().refCountedStore.refCount);
+    getSDLVulkanExtensions(getSDLWindowFixture().window).length.shouldBeGreaterThan(1);
 }
 
 const(char)*[] getSDLVulkanExtensions(SDL_Window* sdlWindow) @trusted nothrow
 {
-    import std.conv : to;
-
     uint numberOfExtensions = 0;
     SDL_Vulkan_GetInstanceExtensions(sdlWindow, &numberOfExtensions, null);
 

@@ -4,6 +4,8 @@ import bindbc.sdl;
 import std.string : toStringz;
 import std.conv;
 import std.exception;
+import vuv.graphics.vulkan : getUserDefinedValidationLayers;
+import unit_threaded : Tags;
 
 debug import vuv.debugutilities;
 
@@ -28,19 +30,18 @@ version (unittest)
     //Arrange
     VkInstance instance;
     VkDebugUtilsMessengerEXT debugMessenger;
-    static const(char)*[] validationLayers = ["VK_LAYER_KHRONOS_validation"];
     auto appInfo = createVkApplicationInfo("TestApp");
     auto createInfo = createInstanceVkCreateInfo(appInfo);
 
     auto debugCreateInfo = createVulkanDebug();
-    auto fixture = getFixture();
+    auto fixture = getSDLWindowFixture();
     auto enabledExtensions = getSDLVulkanExtensions(fixture.window);
     //Adding vulkan Debug extension
     enabledExtensions = enabledExtensions ~ VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
 
     addExtentions(createInfo, enabledExtensions);
-    checkValidationLayerSupport(validationLayers).shouldBeTrue;
-    addValidationLayers(createInfo, validationLayers);
+    checkValidationLayerSupport(getUserDefinedValidationLayers).shouldBeTrue;
+    addValidationLayers(createInfo, getUserDefinedValidationLayers);
     addDebug(createInfo, debugCreateInfo);
 
     instantiateVkInstance(createInfo, instance).shouldBeTrue;
@@ -53,27 +54,25 @@ version (unittest)
     {
         destroyDebugUtilMessengerExt(instance, debugMessenger, null);
         vkDestroyInstance(instance, null);
-        writelnUt("Done destroying");
     }
 
 }
 
+@Tags("initializeVkInstance")
 @("Test initializeVkInstance")
-@trusted
-unittest
+@trusted unittest
 {
-    import erupted;
-
     VkInstance instance;
     VkDebugUtilsMessengerEXT debugMessenger;
-    initializeVkInstance(instance, debugMessenger, getSDLVulkanExtensions(getFixture.window)).shouldBeTrue;
+    auto fixture = getSDLWindowFixture();
+    initializeVkInstance(instance, debugMessenger, getSDLVulkanExtensions(fixture.window))
+        .shouldBeTrue;
 }
 
-bool initializeVkInstance(ref VkInstance instance, ref VkDebugUtilsMessengerEXT debugMessenger, const(
-        char)*[] enabledExtensions) @trusted nothrow
+bool initializeVkInstance(ref VkInstance instance,
+    ref VkDebugUtilsMessengerEXT debugMessenger, const(char)*[] enabledExtensions) @trusted nothrow
 {
-    static const(char)*[] validationLayers = ["VK_LAYER_KHRONOS_validation"];
-    auto appInfo = createVkApplicationInfo("TestApp");
+    auto appInfo = createVkApplicationInfo("VuvEngineApp");
     auto createInfo = createInstanceVkCreateInfo(appInfo);
 
     debug auto debugCreateInfo = createVulkanDebug();
@@ -81,14 +80,13 @@ bool initializeVkInstance(ref VkInstance instance, ref VkDebugUtilsMessengerEXT 
     debug enabledExtensions ~= VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
 
     addExtentions(createInfo, enabledExtensions);
-    if (!checkValidationLayerSupport(validationLayers))
+    if (!checkValidationLayerSupport(getUserDefinedValidationLayers))
     {
         import std.stdio : writeln;
-
         debug writeln("Failed to validate layers");
         return false;
     }
-    addValidationLayers(createInfo, validationLayers);
+    addValidationLayers(createInfo, getUserDefinedValidationLayers);
     debug addDebug(createInfo, debugCreateInfo);
 
     if (!instantiateVkInstance(createInfo, instance))
@@ -108,14 +106,16 @@ bool initializeVkInstance(ref VkInstance instance, ref VkDebugUtilsMessengerEXT 
     }
 
     //important to load functions
+    debug import unit_threaded : writelnUt;
+
+    debug writelnUt("OK to initializeVkInstance vk debug feature!");
     loadInstanceLevelFunctions(instance);
     return true;
 
 }
 
 @("Test getVulkanExtensions")
-@trusted
-unittest
+@trusted unittest
 {
     loadGlobalLevelFunctions();
     getVulkanExtensions().length.shouldBeGreaterThan(0);
@@ -123,18 +123,11 @@ unittest
 
 VkExtensionProperties[] getVulkanExtensions() @trusted
 {
-    import std.conv : to;
-    import std.stdio;
-
     uint numberOfExtensions = 0;
     vkEnumerateInstanceExtensionProperties(null, &numberOfExtensions, null);
     VkExtensionProperties[] vkProperties = new VkExtensionProperties[numberOfExtensions];
     vkEnumerateInstanceExtensionProperties(null, &numberOfExtensions, vkProperties.ptr);
 
-    foreach (VkExtensionProperties prop; vkProperties)
-    {
-        debug writeln(prop.extensionName);
-    }
     return vkProperties;
 
 }
@@ -190,7 +183,7 @@ VkDebugUtilsMessengerCreateInfoEXT createVulkanDebug() @trusted nothrow
         }
         if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
         {
-            debug writeln("VULKAN CALLBACK DEBUG");
+            debug writeln("VULKAN CALLBACK DEBUG: ", pCallbackData.pMessage);
             // Message is important enough to show
         }
         return VK_FALSE;
