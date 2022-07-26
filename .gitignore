@@ -13,4 +13,4 @@ vuv-test-*
 *.o
 *.obj
 *.lst
-bin/
+bin
