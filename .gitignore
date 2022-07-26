@@ -13,4 +13,5 @@ vuv-test-*
 *.o
 *.obj
 *.lst
-bin/
+bin/ut.d
+bin/vuvproject
