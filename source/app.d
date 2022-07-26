@@ -16,5 +16,6 @@ else
     void main()
     {
         auto win = Window("title", 600, 300);
+        Vulkan vulkan = Vulkan("title", win._sdlWindow);
     }
 }

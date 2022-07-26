@@ -8,6 +8,7 @@ import vuv.graphics.vulkan : getUserDefinedValidationLayers;
 import unit_threaded : Tags;
 
 debug import vuv.debugutilities;
+import erupted.vulkan_lib_loader;
 
 debug import std.stdio : writeln;
 
@@ -16,7 +17,6 @@ debug import std.stdio : writeln;
 version (unittest)
 {
     import vuv.graphics.window;
-    import erupted.vulkan_lib_loader;
     import unit_threaded;
     import std.stdio;
     import vuv.graphics.sdlhelper;
@@ -72,6 +72,7 @@ version (unittest)
 bool initializeVkInstance(ref VkInstance instance,
     ref VkDebugUtilsMessengerEXT debugMessenger, const(char)*[] enabledExtensions) @trusted nothrow
 {
+    loadGlobalLevelFunctions();
     auto appInfo = createVkApplicationInfo("VuvEngineApp");
     auto createInfo = createInstanceVkCreateInfo(appInfo);
 
@@ -83,6 +84,7 @@ bool initializeVkInstance(ref VkInstance instance,
     if (!checkValidationLayerSupport(getUserDefinedValidationLayers))
     {
         import std.stdio : writeln;
+
         debug writeln("Failed to validate layers");
         return false;
     }

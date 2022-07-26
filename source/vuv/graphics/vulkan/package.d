@@ -18,7 +18,6 @@ unittest
 {
     auto sdlWindowFixture = getSDLWindowFixture();
     Vulkan vulkan = Vulkan("Test", sdlWindowFixture.window);
-
 }
 
 public:
@@ -51,7 +50,7 @@ struct Vulkan
 
         debug destroyDebugUtilMessengerExt(_instance, _debugMessenger, null);
 
-        // vkDestroySurfaceKHR(_instance, _surface, null);
+        vkDestroySurfaceKHR(_instance, _surface, null);
 
         vkDestroyInstance(_instance, null);
     }

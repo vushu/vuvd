@@ -66,6 +66,7 @@ version (unittest)
             VkDebugUtilsMessengerEXT debugMessenger;
 
             VkSurfaceKHR surface;
+
             assert(initializeVkInstance(instance, debugMessenger, enabledExtensions));
             assert(createSurface(sdlWindowFixture.window, instance, surface));
 

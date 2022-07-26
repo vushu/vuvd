@@ -23,7 +23,7 @@ struct Window
     int width;
     int height;
 
-package:
+// package:
     SDL_Window* _sdlWindow;
 }
 
