@@ -28,10 +28,10 @@ version (unittest)
         {
             if (_fixture.refCountedStore.isInitialized)
             {
-                writelnUt("TestVkDeviceFixture initialized");
+                // writelnUt("TestVkDeviceFixture initialized");
                 return _fixture;
             }
-            writelnUt("TestVkDeviceFixture initialized");
+            // writelnUt("TestVkDeviceFixture initialized");
 
             auto fixture = getVkInstanceFixture();
             auto window = fixture.sdlWindowFixture.window;

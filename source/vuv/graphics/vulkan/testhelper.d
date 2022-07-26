@@ -17,7 +17,7 @@ struct TestFixture
     {
         //_mtx.lock_nothrow();
         TestFixture t;
-        loadGlobalLevelFunctions();
+        // loadGlobalLevelFunctions();
 
         auto appInfo = createVkApplicationInfo("TestTitle");
         t.createInfo = createInstanceVkCreateInfo(appInfo);

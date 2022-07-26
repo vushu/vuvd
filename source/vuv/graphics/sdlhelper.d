@@ -6,6 +6,8 @@ import std.conv;
 import std.string : toStringz;
 import std.typecons;
 import unit_threaded : Tags;
+import erupted.vulkan_lib_loader;
+import erupted;
 
 version (unittest)
 {
@@ -76,7 +78,7 @@ bool initializeSDLImage() nothrow @trusted @nogc
 
 bool initializeSDL() nothrow @trusted @nogc
 {
-    if (SDL_Init(SDL_INIT_VIDEO) != 0)
+    if (SDL_Init(SDL_INIT_EVERYTHING) != 0)
     {
         debug writeln("Failed to initialize loading SDL Image dll ", to!string(SDL_GetError()));
         return false;
@@ -99,13 +101,15 @@ SDL_Window* createWindow(string title, int width, int height) nothrow @trusted @
     return window;
 }
 
-SDL_Window* createSDLWindow(string title, int width, int height) nothrow @nogc
+SDL_Window* createSDLWindow(string title, int width, int height) nothrow @nogc @trusted
 {
 
     if (loadSDLLibrary() && initializeSDL() && initializeSDLImage())
     {
         if (SDL_Window* sdlWindow = createWindow(title, width, height))
         {
+            loadGlobalLevelFunctions(
+                cast(PFN_vkGetInstanceProcAddr) SDL_Vulkan_GetVkGetInstanceProcAddr());
             return sdlWindow;
         }
     }

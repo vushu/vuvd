@@ -24,6 +24,7 @@ version (unittest)
 
     import unit_threaded;
     import vuv.graphics.vulkan.instance : initializeVkInstance, destroyDebugUtilMessengerExt;
+    import erupted.vulkan_lib_loader;
     import bindbc.sdl;
     import vuv.graphics.sdlhelper;
     import std.algorithm.mutation : move;
@@ -57,7 +58,7 @@ version (unittest)
             {
                 return _fixture;
             }
-            writelnUt("Initializing TestVkInstanceFixture");
+            // writelnUt("Initializing TestVkInstanceFixture");
             auto sdlWindowFixture = getSDLWindowFixture();
             auto enabledExtensions = getSDLVulkanExtensions(sdlWindowFixture.window);
 
@@ -85,11 +86,7 @@ unittest
 {
     auto fixture = getVkInstanceFixture();
     VkPhysicalDevice device;
-
-    // VkSurfaceKHR surface;
-    // assert(createSurface(fixture.sdlWindowFixture.window, fixture.instance, surface));
     getPhysicalDevice(fixture.instance, device, fixture.surface).shouldBeTrue;
-
 }
 
 //Graphics card
@@ -177,10 +174,10 @@ QueueFamilyIndices findQueueFamilies(ref VkPhysicalDevice device, ref VkSurfaceK
         VkBool32 presentSupport = false;
         // vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
 
-        // if (presentSupport)
-        // {
-        //     indices.presentFamily = i;
-        // }
+        if (presentSupport)
+        {
+            indices.presentFamily = i;
+        }
 
         if (indices.isComplete)
         {

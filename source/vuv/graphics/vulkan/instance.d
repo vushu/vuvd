@@ -72,7 +72,6 @@ version (unittest)
 bool initializeVkInstance(ref VkInstance instance,
     ref VkDebugUtilsMessengerEXT debugMessenger, const(char)*[] enabledExtensions) @trusted nothrow
 {
-    loadGlobalLevelFunctions();
     auto appInfo = createVkApplicationInfo("VuvEngineApp");
     auto createInfo = createInstanceVkCreateInfo(appInfo);
 
@@ -101,7 +100,6 @@ bool initializeVkInstance(ref VkInstance instance,
 
         if (!instantiateDebugFeature(instance, debugCreateInfo, debugMessenger))
         {
-
             writeln("Failed to instantiate vk debug feature!");
             return false;
         }
@@ -110,7 +108,7 @@ bool initializeVkInstance(ref VkInstance instance,
     //important to load functions
     debug import unit_threaded : writelnUt;
 
-    debug writelnUt("OK to initializeVkInstance vk debug feature!");
+    // debug writelnUt("OK to initializeVkInstance vk debug feature!");
     loadInstanceLevelFunctions(instance);
     return true;
 
@@ -185,7 +183,7 @@ VkDebugUtilsMessengerCreateInfoEXT createVulkanDebug() @trusted nothrow
         }
         if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
         {
-            debug writeln("VULKAN CALLBACK DEBUG: ", pCallbackData.pMessage);
+            debug writeln("VULKAN CALLBACK DEBUG: ", to!string(pCallbackData.pMessage));
             // Message is important enough to show
         }
         return VK_FALSE;
@@ -216,7 +214,7 @@ void destroyDebugUtilMessengerExt(ref VkInstance instance,
     if (func != null)
     {
         func(instance, debugMessenger, pAllocator);
-        debug writeln("Successfully destroyed vulkan debugging add-on");
+        // debug writeln("Successfully destroyed vulkan debugging add-on");
     }
 }
 
@@ -262,8 +260,7 @@ bool instantiateDebugFeature(ref VkInstance instance,
 @trusted unittest
 {
     loadGlobalLevelFunctions();
-    static const(char)*[] validationLayers = ["VK_LAYER_KHRONOS_validation"];
-    checkValidationLayerSupport(validationLayers).shouldBeTrue;
+    checkValidationLayerSupport(getUserDefinedValidationLayers).shouldBeTrue;
 }
 
 bool checkValidationLayerSupport(ref const(char)*[] checkValidationLayers) @nogc @trusted nothrow
