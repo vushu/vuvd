@@ -10,6 +10,7 @@ version (unittest)
     import unit_threaded;
     import vuv.graphics.vulkan.physicaldevice;
     import vuv.graphics.vulkan.windowsurface;
+    import vuv.graphics.vulkan.staticvalues : getRequiredValidationLayers;
     import bindbc.sdl;
 
     struct TestVkDeviceFixture
@@ -50,38 +51,37 @@ version (unittest)
     static RefCounted!TestVkDeviceFixture _fixture;
 }
 
-VkDeviceQueueCreateInfo createLogicalDevice(uint graphicsFamily)
-{
-    VkDeviceQueueCreateInfo queueCreateInfo;
-    queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    queueCreateInfo.queueFamilyIndex = graphicsFamily;
-    queueCreateInfo.queueCount = 1;
-    return queueCreateInfo;
-}
-
 @("Test instantiateDevice")
 unittest
 {
     auto fixture = getVkDeviceFixture();
-    static const(char)*[] validationLayers = ["VK_LAYER_KHRONOS_validation"];
     VkDevice device;
 
     VkSurfaceKHR surface;
+    VkQueue graphicsQueue, presentQueue;
     assert(createSurface(fixture.window, fixture.instanceFixture.instance, surface));
-    instantiateDevice(fixture.physicalDevice, device, validationLayers, surface).shouldBeTrue;
+    instantiateDevice(fixture.physicalDevice, device, getRequiredValidationLayers, surface, graphicsQueue, presentQueue)
+        .shouldBeTrue;
 }
 
 bool instantiateDevice(ref VkPhysicalDevice physicalDevice, ref VkDevice device,
-    ref const(char)*[] validationLayers, ref VkSurfaceKHR surface)
+    ref const(char)*[] validationLayers, ref VkSurfaceKHR surface, ref VkQueue graphicsQueue, ref VkQueue presentQueue)
 {
     auto foundQueueFamily = findQueueFamilies(physicalDevice, surface);
-    auto queueCreateInfo = createLogicalDevice(foundQueueFamily.graphicsFamily.get);
 
-    if (initializeDevice(physicalDevice, queueCreateInfo, 1.0, device, validationLayers))
+    float queuePriority = 1.0f;
+
+    auto createQueueInfos = createQueueInfos(foundQueueFamily.graphicsFamily.get,
+        foundQueueFamily.presentFamily.get, queuePriority);
+
+    if (!initializeDevice(physicalDevice, createQueueInfos, device, validationLayers))
     {
-        VkQueue graphicsQueue;
-        getDeviceQueue(device, foundQueueFamily.graphicsFamily.get, graphicsQueue);
+        debug writelnUt("Failed to initDevice");
+        return false;
     }
+
+    vkGetDeviceQueue(device, foundQueueFamily.graphicsFamily.get, 0, &graphicsQueue);
+    vkGetDeviceQueue(device, foundQueueFamily.presentFamily.get, 0, &presentQueue);
     return true;
 
 }
@@ -90,38 +90,34 @@ bool instantiateDevice(ref VkPhysicalDevice physicalDevice, ref VkDevice device,
 unittest
 {
     auto fixture = getVkDeviceFixture();
-    VkSurfaceKHR surface;
 
-    auto foundQueueFamily = findQueueFamilies(fixture.physicalDevice, fixture.instanceFixture.surface);
+    auto foundQueueFamily = findQueueFamilies(fixture.physicalDevice, fixture
+            .instanceFixture.surface);
 
-    auto queueCreateInfo = createLogicalDevice(foundQueueFamily.graphicsFamily.get);
-
-    queueCreateInfo.queueFamilyIndex.should.be == foundQueueFamily.graphicsFamily.get;
+    float priority = 1.0f;
+    auto queueCreateInfos = createQueueInfos(foundQueueFamily.graphicsFamily.get, foundQueueFamily.presentFamily.get,
+        priority);
 
     VkDevice device;
-    static const(char)*[] validationLayers = ["VK_LAYER_KHRONOS_validation"];
 
-    initializeDevice(fixture.physicalDevice, queueCreateInfo, 1.0, device, validationLayers)
+    initializeDevice(fixture.physicalDevice, queueCreateInfos, device, getRequiredValidationLayers)
         .shouldBeTrue;
 
     VkQueue graphicsQueue;
-    getDeviceQueue(device, foundQueueFamily.graphicsFamily.get, graphicsQueue);
+    vkGetDeviceQueue(device, foundQueueFamily.graphicsFamily.get, 0, &graphicsQueue);
 }
 
-bool initializeDevice(ref VkPhysicalDevice physicalDevice, ref VkDeviceQueueCreateInfo queueCreateInfo,
-    float queuePriority, ref VkDevice device, ref const(char)*[] validationLayers)
+bool initializeDevice(ref VkPhysicalDevice physicalDevice, ref VkDeviceQueueCreateInfo[] queueCreateInfos,
+    ref VkDevice device, ref const(char)*[] validationLayers)
 {
-    queueCreateInfo.queueCount = 1;
-    queueCreateInfo.pQueuePriorities = &queuePriority;
-
     VkPhysicalDeviceFeatures deviceFeatures;
 
     VkDeviceCreateInfo createInfo;
 
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 
-    createInfo.pQueueCreateInfos = &queueCreateInfo;
-    createInfo.queueCreateInfoCount = 1;
+    createInfo.queueCreateInfoCount = cast(uint) queueCreateInfos.length;
+    createInfo.pQueueCreateInfos = queueCreateInfos.ptr;
 
     createInfo.pEnabledFeatures = &deviceFeatures;
 
@@ -136,10 +132,25 @@ bool initializeDevice(ref VkPhysicalDevice physicalDevice, ref VkDeviceQueueCrea
     }
 
     return vkCreateDevice(physicalDevice, &createInfo, null, &device) == VK_SUCCESS;
-
 }
 
-void getDeviceQueue(ref VkDevice device, uint graphicsFamily, ref VkQueue graphicsQueue)
+VkDeviceQueueCreateInfo[] createQueueInfos(uint queueFamily,
+    uint presentFamily, ref float queuePriority)
 {
-    vkGetDeviceQueue(device, graphicsFamily, 0, &graphicsQueue);
+    VkDeviceQueueCreateInfo[] queueCreateInfos;
+    bool[uint] uniqueQueueFamilies;
+    uniqueQueueFamilies[queueFamily] = false;
+    uniqueQueueFamilies[presentFamily] = false;
+
+    foreach (key, value; uniqueQueueFamilies)
+    {
+        VkDeviceQueueCreateInfo queueCreateInfo;
+        queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queueCreateInfo.queueFamilyIndex = queueFamily;
+        queueCreateInfo.queueCount = 1;
+        queueCreateInfo.pQueuePriorities = &queuePriority;
+        queueCreateInfos ~= queueCreateInfo;
+    }
+    return queueCreateInfos;
+
 }

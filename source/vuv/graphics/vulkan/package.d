@@ -3,9 +3,13 @@ import vuv.graphics.window;
 import bindbc.sdl;
 import erupted;
 import vuv.graphics.sdlhelper;
+import vuv.graphics.vulkan.staticvalues;
 import vuv.graphics.vulkan.physicaldevice;
 import vuv.graphics.vulkan.logicaldevice;
 import vuv.graphics.vulkan.windowsurface;
+import vuv.graphics.vulkan.swapchain;
+import erupted.vulkan_lib_loader;
+
 import unit_threaded : Tags;
 
 debug import std.stdio : writeln;
@@ -23,10 +27,6 @@ unittest
 public:
 import vuv.graphics.vulkan.instance;
 
-static const(char)*[] getUserDefinedValidationLayers = [
-    "VK_LAYER_KHRONOS_validation"
-];
-
 struct Vulkan
 {
     this(string title, SDL_Window* sdlWindow)
@@ -40,7 +40,10 @@ struct Vulkan
         loadDeviceLevelFunctions(_instance);
 
         assert(instantiateDevice(_physicalDevice, _device,
-                getUserDefinedValidationLayers, _surface));
+                getRequiredValidationLayers, _surface, _graphicsQueue, _presentQueue));
+
+
+        // assert(createSwapchain(_device, _physicalDevice, _surface, sdlWindow, _swapchain));
 
     }
 
@@ -61,4 +64,6 @@ private:
     VkDebugUtilsMessengerEXT _debugMessenger;
     VkDevice _device;
     VkSurfaceKHR _surface;
+    VkQueue _graphicsQueue, _presentQueue;
+    VkSwapchainKHR _swapchain;
 }

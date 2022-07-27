@@ -4,7 +4,7 @@ import bindbc.sdl;
 import std.string : toStringz;
 import std.conv;
 import std.exception;
-import vuv.graphics.vulkan : getUserDefinedValidationLayers;
+import vuv.graphics.vulkan.staticvalues : getRequiredValidationLayers;
 import unit_threaded : Tags;
 
 debug import vuv.debugutilities;
@@ -40,8 +40,8 @@ version (unittest)
     enabledExtensions = enabledExtensions ~ VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
 
     addExtentions(createInfo, enabledExtensions);
-    checkValidationLayerSupport(getUserDefinedValidationLayers).shouldBeTrue;
-    addValidationLayers(createInfo, getUserDefinedValidationLayers);
+    checkValidationLayerSupport(getRequiredValidationLayers).shouldBeTrue;
+    addValidationLayers(createInfo, getRequiredValidationLayers);
     addDebug(createInfo, debugCreateInfo);
 
     instantiateVkInstance(createInfo, instance).shouldBeTrue;
@@ -80,14 +80,14 @@ bool initializeVkInstance(ref VkInstance instance,
     debug enabledExtensions ~= VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
 
     addExtentions(createInfo, enabledExtensions);
-    if (!checkValidationLayerSupport(getUserDefinedValidationLayers))
+    if (!checkValidationLayerSupport(getRequiredValidationLayers))
     {
         import std.stdio : writeln;
 
         debug writeln("Failed to validate layers");
         return false;
     }
-    addValidationLayers(createInfo, getUserDefinedValidationLayers);
+    addValidationLayers(createInfo, getRequiredValidationLayers);
     debug addDebug(createInfo, debugCreateInfo);
 
     if (!instantiateVkInstance(createInfo, instance))
@@ -97,7 +97,6 @@ bool initializeVkInstance(ref VkInstance instance,
     }
     debug
     {
-
         if (!instantiateDebugFeature(instance, debugCreateInfo, debugMessenger))
         {
             writeln("Failed to instantiate vk debug feature!");
@@ -260,7 +259,7 @@ bool instantiateDebugFeature(ref VkInstance instance,
 @trusted unittest
 {
     loadGlobalLevelFunctions();
-    checkValidationLayerSupport(getUserDefinedValidationLayers).shouldBeTrue;
+    checkValidationLayerSupport(getRequiredValidationLayers).shouldBeTrue;
 }
 
 bool checkValidationLayerSupport(ref const(char)*[] checkValidationLayers) @nogc @trusted nothrow

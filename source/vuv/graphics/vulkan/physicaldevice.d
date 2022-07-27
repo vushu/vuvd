@@ -1,8 +1,10 @@
 module vuv.graphics.vulkan.physicaldevice;
+import vuv.graphics.vulkan.staticvalues;
 import erupted;
 import std.typecons : RefCounted, refCounted;
 
 import std.algorithm.searching : maxElement;
+import vuv.graphics.vulkan.swapchain;
 
 debug import unit_threaded;
 import std.typecons : Nullable;
@@ -14,8 +16,7 @@ struct QueueFamilyIndices
 
     bool isComplete()
     {
-        // return !graphicsFamily.isNull && !presentFamily.isNull;
-        return !graphicsFamily.isNull;
+        return !graphicsFamily.isNull && !presentFamily.isNull;
     }
 }
 
@@ -71,7 +72,8 @@ version (unittest)
             assert(initializeVkInstance(instance, debugMessenger, enabledExtensions));
             assert(createSurface(sdlWindowFixture.window, instance, surface));
 
-            _fixture = RefCounted!TestVkInstanceFixture(instance, debugMessenger, surface, sdlWindowFixture);
+            _fixture = RefCounted!TestVkInstanceFixture(instance,
+                debugMessenger, surface, sdlWindowFixture);
             return _fixture;
         }
 
@@ -111,7 +113,7 @@ bool getPhysicalDevice(ref VkInstance instance,
     foreach (VkPhysicalDevice device; physicalDevices)
     {
         int score = rateDeviceSuitability(device);
-        if (score > 0 && hasGraphicsFamily(device, surface))
+        if (score > 0 && isDeviceSuitable(device, surface))
         {
             //debug writelnUt("devices score which are suitable!: ", score);
             useableDevices[score] = device;
@@ -172,7 +174,7 @@ QueueFamilyIndices findQueueFamilies(ref VkPhysicalDevice device, ref VkSurfaceK
         }
 
         VkBool32 presentSupport = false;
-        // vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
+        vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
 
         if (presentSupport)
         {
@@ -189,28 +191,49 @@ QueueFamilyIndices findQueueFamilies(ref VkPhysicalDevice device, ref VkSurfaceK
     return indices;
 }
 
-bool hasGraphicsFamily(ref VkPhysicalDevice physicalDevice, ref VkSurfaceKHR surface)
+bool isDeviceSuitable(ref VkPhysicalDevice physicalDevice, ref VkSurfaceKHR surface)
 {
-    return findQueueFamilies(physicalDevice, surface).isComplete;
+    import vuv.graphics.vulkan;
+
+    bool deviceExtensionSupported = checkDeviceExtensionSupport(physicalDevice, getRequiredDeviceExtensions);
+    if (!deviceExtensionSupported)
+    {
+        return false;
+    }
+    auto swapChainDetails = querySwapChainSupport(physicalDevice, surface);
+    return findQueueFamilies(physicalDevice, surface).isComplete && deviceExtensionSupported && swapChainDetails
+        .isSwapChainAdequate;
 }
 
-VkDeviceQueueCreateInfo[] createUniqueQueueFamilies(uint queueFamily,
-    uint presentFamily, ref float queuePriority)
+bool checkDeviceExtensionSupport(ref VkPhysicalDevice device, bool[string] requiredDeviceExtentions)
 {
-    VkDeviceQueueCreateInfo[] queueCreateInfos;
-    bool[uint] uniqueQueueFamilies;
-    uniqueQueueFamilies[queueFamily] = false;
-    uniqueQueueFamilies[presentFamily] = false;
+    import std.conv : to;
 
-    foreach (key, value; uniqueQueueFamilies)
+    uint extensionCount;
+
+    vkEnumerateDeviceExtensionProperties(device, null, &extensionCount, null);
+
+    if (extensionCount == 0)
     {
-        VkDeviceQueueCreateInfo queueCreateInfo;
-        queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        queueCreateInfo.queueFamilyIndex = queueFamily;
-        queueCreateInfo.queueCount = 1;
-        queueCreateInfo.pQueuePriorities = &queuePriority;
-        queueCreateInfos ~= queueCreateInfo;
+        return false;
     }
-    return queueCreateInfos;
+
+    VkExtensionProperties[] availableDeviceExtensions = new VkExtensionProperties[extensionCount];
+
+    vkEnumerateDeviceExtensionProperties(device, null, &extensionCount,
+        availableDeviceExtensions.ptr);
+
+    import core.stdc.string : strcmp;
+
+    debug writelnUt("extensionCount count: ", extensionCount);
+
+    foreach (availableExtension; availableDeviceExtensions)
+    {
+        requiredDeviceExtentions.remove(to!string(availableExtension.extensionName.ptr));
+    }
+
+    debug writelnUt("required length: ", requiredDeviceExtentions.length);
+    debug writelnUt("availableDeviceExtensions length: ", availableDeviceExtensions.length);
+    return requiredDeviceExtentions.length == 0;
 
 }
