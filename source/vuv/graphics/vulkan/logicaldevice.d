@@ -9,7 +9,7 @@ version (unittest)
 {
     import unit_threaded;
     import vuv.graphics.vulkan.physicaldevice;
-    import vuv.graphics.vulkan.windowsurface;
+    import vuv.graphics.vulkan.surface;
     import vuv.graphics.vulkan.staticvalues;
     import bindbc.sdl;
 
@@ -19,6 +19,7 @@ version (unittest)
 
         VkPhysicalDevice physicalDevice;
         SDL_Window* window;
+        QueueFamilyIndices queueFamilyIndices;
 
         RefCounted!TestVkInstanceFixture instanceFixture;
     }
@@ -40,9 +41,12 @@ version (unittest)
 
             loadDeviceLevelFunctions(fixture.instance);
 
-            getPhysicalDevice(fixture.instance, physicalDevice, fixture.surface).shouldBeTrue;
+            QueueFamilyIndices queueIndices;
 
-            _fixture = RefCounted!TestVkDeviceFixture(physicalDevice, window, fixture);
+            getPhysicalDevice(fixture.instance, physicalDevice, fixture.surface, queueIndices)
+                .shouldBeTrue;
+
+            _fixture = RefCounted!TestVkDeviceFixture(physicalDevice, window, queueIndices, fixture);
 
             return _fixture;
         }
@@ -58,14 +62,13 @@ unittest
     VkDevice device;
 
     VkSurfaceKHR surface;
-    VkQueue graphicsQueue, presentQueue;
     assert(createSurface(fixture.window, fixture.instanceFixture.instance, surface));
-    instantiateDevice(fixture.physicalDevice, device, getRequiredValidationLayers, getRequiredDeviceExtensions, surface, graphicsQueue, presentQueue)
+    instantiateDevice(fixture.physicalDevice, device, getRequiredValidationLayers, getRequiredDeviceExtensions, surface)
         .shouldBeTrue;
 }
 
 bool instantiateDevice(ref VkPhysicalDevice physicalDevice, ref VkDevice device,
-    ref const(char)*[] validationLayers, ref const(char)*[] deviceExtentions, ref VkSurfaceKHR surface, ref VkQueue graphicsQueue, ref VkQueue presentQueue)
+    ref const(char)*[] validationLayers, ref const(char)*[] deviceExtentions, ref VkSurfaceKHR surface)
 {
     auto foundQueueFamily = findQueueFamilies(physicalDevice, surface);
 
@@ -81,8 +84,8 @@ bool instantiateDevice(ref VkPhysicalDevice physicalDevice, ref VkDevice device,
     }
 
     loadDeviceLevelFunctions(device);
-    vkGetDeviceQueue(device, foundQueueFamily.graphicsFamily.get, 0, &graphicsQueue);
-    vkGetDeviceQueue(device, foundQueueFamily.presentFamily.get, 0, &presentQueue);
+    // vkGetDeviceQueue(device, foundQueueFamily.graphicsFamily.get, 0, &graphicsQueue);
+    // vkGetDeviceQueue(device, foundQueueFamily.presentFamily.get, 0, &presentQueue);
     return true;
 
 }
@@ -157,4 +160,11 @@ VkDeviceQueueCreateInfo[] createQueueInfos(uint queueFamily,
     }
     return queueCreateInfos;
 
+}
+
+VkQueue getQueue(ref VkDevice device, uint indexOfQueueFamily)
+{
+    VkQueue queue;
+    vkGetDeviceQueue(device, indexOfQueueFamily, 0, &queue);
+    return queue;
 }

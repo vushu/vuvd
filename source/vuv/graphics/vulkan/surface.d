@@ -1,4 +1,4 @@
-module vuv.graphics.vulkan.windowsurface;
+module vuv.graphics.vulkan.surface;
 import bindbc.sdl;
 import erupted;
 import unit_threaded : Tags;

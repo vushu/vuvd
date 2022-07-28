@@ -2,17 +2,23 @@ module vuv.graphics.vulkan.swapchain;
 import erupted;
 import bindbc.sdl;
 import std.algorithm.comparison : clamp, max;
-import vuv.graphics.vulkan.physicaldevice : findQueueFamilies;
+import vuv.graphics.vulkan.physicaldevice : findQueueFamilies, QueueFamilyIndices;
 import std.typecons : RefCounted;
 import unit_threaded : Tags;
 
 debug import std.stdio : writeln;
 
-struct SwapChainSupportDetails
+struct SwapchainSupportDetails
 {
     VkSurfaceCapabilitiesKHR capabilities;
     VkSurfaceFormatKHR[] formats;
     VkPresentModeKHR[] presentModes;
+}
+
+struct SwapchainData
+{
+    VkFormat swapChainImageFormat;
+    VkExtent2D swapChainExtent;
 }
 
 void enforceVk(VkResult res)
@@ -35,13 +41,15 @@ version (unittest)
         VkDevice device;
         VkPhysicalDevice physicalDevice;
         VkSurfaceKHR surface;
-        VkQueue graphicsQueue;
-        VkQueue presentQueue;
+        SwapchainData swapchainData;
+        QueueFamilyIndices queueFamilyIndices;
         SDL_Window* window;
+
         RefCounted!TestVkDeviceFixture deviceFixture;
         ~this()
         {
         }
+
     }
 
     RefCounted!TestSwapchainFixture getSwapchainFixture()
@@ -57,15 +65,17 @@ version (unittest)
             auto physicalDevice = deviceFixture.physicalDevice;
             auto surface = deviceFixture.instanceFixture.surface;
             auto instance = deviceFixture.instanceFixture.instance;
+            auto queueFamilyIndices = deviceFixture.queueFamilyIndices;
             loadDeviceLevelFunctions(instance);
             VkDevice device;
-            VkQueue graphicsQueue;
-            VkQueue presentQueue;
-            instantiateDevice(physicalDevice, device, getRequiredValidationLayers, getRequiredDeviceExtensions, surface, graphicsQueue, presentQueue)
+            SwapchainData swapchainData;
+            instantiateDevice(physicalDevice, device, getRequiredValidationLayers, getRequiredDeviceExtensions, surface)
                 .shouldBeTrue;
             // important
-            _fixture = RefCounted!TestSwapchainFixture(device, physicalDevice, surface, graphicsQueue,
-                presentQueue, window, deviceFixture);
+            _fixture = RefCounted!TestSwapchainFixture(device, physicalDevice, surface,
+                swapchainData,
+                queueFamilyIndices,
+                window, deviceFixture);
             return _fixture;
         }
 
@@ -74,8 +84,7 @@ version (unittest)
     static RefCounted!TestSwapchainFixture _fixture;
 }
 
-@("Testing querySwapChainSupport")
-unittest
+@("Testing querySwapChainSupport") unittest
 {
     auto fixture = getSwapchainFixture();
     auto details = querySwapChainSupport(fixture.physicalDevice, fixture.surface);
@@ -95,9 +104,9 @@ unittest
 }
 
 @trusted
-SwapChainSupportDetails querySwapChainSupport(ref VkPhysicalDevice physicalDevice, ref VkSurfaceKHR surface)
+SwapchainSupportDetails querySwapChainSupport(ref VkPhysicalDevice physicalDevice, ref VkSurfaceKHR surface)
 {
-    SwapChainSupportDetails details;
+    SwapchainSupportDetails details;
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &details.capabilities);
 
     uint formatCount;
@@ -125,7 +134,7 @@ SwapChainSupportDetails querySwapChainSupport(ref VkPhysicalDevice physicalDevic
     return details;
 }
 
-bool isSwapChainAdequate(ref SwapChainSupportDetails details)
+bool isSwapChainAdequate(ref SwapchainSupportDetails details)
 {
     return details.formats.length > 0 && details.presentModes.length > 0;
 }
@@ -144,8 +153,7 @@ VkSurfaceFormatKHR chooseSwapSurfaceFormat(ref VkSurfaceFormatKHR[] availableFor
     return availableFormats[0];
 }
 
-@("Testing chooseSwapPresentMode")
-unittest
+@("Testing chooseSwapPresentMode") unittest
 {
     auto fixture = getSwapchainFixture();
     auto details = querySwapChainSupport(fixture.physicalDevice, fixture.surface);
@@ -168,8 +176,7 @@ VkPresentModeKHR chooseSwapPresentMode(ref VkPresentModeKHR[] availablePresentMo
     return VK_PRESENT_MODE_FIFO_KHR;
 }
 
-@("Testing chooseSwapExtent")
-unittest
+@("Testing chooseSwapExtent") unittest
 {
     auto fixture = getSwapchainFixture;
     auto details = querySwapChainSupport(fixture.physicalDevice, fixture.surface);
@@ -212,14 +219,15 @@ VkExtent2D chooseSwapExtent(ref VkSurfaceCapabilitiesKHR capabilities, SDL_Windo
     return actualExtent;
 }
 
-@Tags("createSwapchain")
-@("Testing createSwapchain")
-unittest
+@Tags("createSwapchain") @("Testing createSwapchain") unittest
 {
-    assert(true);
     auto fixture = getSwapchainFixture;
     VkSwapchainKHR swapchain;
-    createSwapchain(fixture.device, fixture.physicalDevice, fixture.surface, fixture.window, swapchain)
+    SwapchainData swapchainData;
+    QueueFamilyIndices queueFamilyIndices = fixture.queueFamilyIndices;
+
+    createSwapchain(fixture.device, fixture.physicalDevice, fixture.surface, fixture.window, swapchain, swapchainData, queueFamilyIndices
+            .graphicsFamily.get, queueFamilyIndices.presentFamily.get)
         .shouldBeTrue;
     scope (exit)
     {
@@ -228,28 +236,33 @@ unittest
 }
 
 bool createSwapchain(ref VkDevice device, ref VkPhysicalDevice physicalDevice, ref VkSurfaceKHR surface,
-    SDL_Window* window, ref VkSwapchainKHR swapchain)
+    SDL_Window* window, ref VkSwapchainKHR swapchain, ref SwapchainData swapchainData, uint graphicsFamilyIndex, uint presentFamilyIndex)
 {
     auto swapChainDetails = querySwapChainSupport(physicalDevice, surface);
-
-    auto swapchainCreateInfo = createSwapchainInfo(physicalDevice, swapChainDetails, surface, window);
-    return vkCreateSwapchainKHR(device, &swapchainCreateInfo, null, &swapchain) == VkResult.VK_SUCCESS;
+    auto swapchainCreateInfo = createSwapchainInfo(physicalDevice, swapChainDetails, surface, swapchainData, window, graphicsFamilyIndex, presentFamilyIndex);
+    return vkCreateSwapchainKHR(device, &swapchainCreateInfo, null, &swapchain) == VkResult
+        .VK_SUCCESS;
 
 }
 
 VkSwapchainCreateInfoKHR createSwapchainInfo(
     ref VkPhysicalDevice physicalDevice,
-    ref SwapChainSupportDetails defails,
+    ref SwapchainSupportDetails defails,
     ref VkSurfaceKHR surface,
-    SDL_Window* window)
+    ref SwapchainData swapchainData,
+    SDL_Window* window,
+    uint graphicsFamilyIndex, uint presentFamilyIndex)
 {
 
-    SwapChainSupportDetails swapChainSupport = querySwapChainSupport(physicalDevice, surface);
+    SwapchainSupportDetails swapChainSupport = querySwapChainSupport(physicalDevice, surface);
     VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
     VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
     VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities, window);
     uint imageCount = getImageCount(swapChainSupport.capabilities.minImageCount, swapChainSupport
             .capabilities.maxImageCount);
+
+    swapchainData.swapChainExtent = extent;
+    swapchainData.swapChainImageFormat = surfaceFormat.format;
 
     VkSwapchainCreateInfoKHR createInfo;
 
@@ -262,17 +275,17 @@ VkSwapchainCreateInfoKHR createSwapchainInfo(
     createInfo.imageArrayLayers = 1;
     createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    auto indices = findQueueFamilies(physicalDevice, surface);
+    // auto indices = findQueueFamilies(physicalDevice, surface);
 
-    if (indices.graphicsFamily.get != indices.presentFamily.get)
+    if (graphicsFamilyIndex != presentFamilyIndex)
     {
         debug writeln("Using VK_SHARING_MODE_CONCURRENT");
         createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
         createInfo.queueFamilyIndexCount = 2;
 
         uint32_t[] queueFamilyIndices = new uint32_t[2];
-        queueFamilyIndices[0] = indices.graphicsFamily.get;
-        queueFamilyIndices[1] = indices.presentFamily.get;
+        queueFamilyIndices[0] = graphicsFamilyIndex;
+        queueFamilyIndices[1] = presentFamilyIndex;
 
         createInfo.pQueueFamilyIndices = queueFamilyIndices.ptr;
     }
@@ -294,8 +307,7 @@ VkSwapchainCreateInfoKHR createSwapchainInfo(
 
 }
 
-@("Testing getImageCount")
-unittest
+@("Testing getImageCount") unittest
 {
     getImageCount(6, 6).should.be == 6;
     getImageCount(6, 0).should.be == 7;
@@ -310,4 +322,31 @@ uint getImageCount(uint minImageCount, uint maxImageCount)
 {
     uint imageCount = minImageCount + 1;
     return maxImageCount > 0 && imageCount > maxImageCount ? maxImageCount : imageCount;
+}
+
+@("Testing getSwapchainImages") unittest
+{
+    auto fixture = getSwapchainFixture;
+    VkSwapchainKHR swapchain;
+    SwapchainData swapchainData;
+    QueueFamilyIndices indices = fixture.queueFamilyIndices;
+    createSwapchain(fixture.device, fixture.physicalDevice, fixture.surface, fixture.window, swapchain, swapchainData, indices
+            .graphicsFamily.get, indices.presentFamily.get)
+        .shouldBeTrue;
+    scope (exit)
+    {
+        vkDestroySwapchainKHR(fixture.device, swapchain, null);
+    }
+    auto swapchainImages = getSwapchainImages(fixture.device, swapchain);
+    swapchainImages.length.shouldBeGreaterThan(0);
+
+}
+
+VkImage[] getSwapchainImages(ref VkDevice device, ref VkSwapchainKHR swapchain)
+{
+    uint imageCount;
+    vkGetSwapchainImagesKHR(device, swapchain, &imageCount, null);
+    VkImage[] swapchainImages = new VkImage[imageCount];
+    vkGetSwapchainImagesKHR(device, swapchain, &imageCount, swapchainImages.ptr);
+    return swapchainImages;
 }

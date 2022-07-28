@@ -29,7 +29,7 @@ version (unittest)
     import bindbc.sdl;
     import vuv.graphics.sdlhelper;
     import std.algorithm.mutation : move;
-    import vuv.graphics.vulkan.windowsurface;
+    import vuv.graphics.vulkan.surface;
 
     struct TestVkInstanceFixture
     {
@@ -88,12 +88,13 @@ unittest
 {
     auto fixture = getVkInstanceFixture();
     VkPhysicalDevice device;
-    getPhysicalDevice(fixture.instance, device, fixture.surface).shouldBeTrue;
+    QueueFamilyIndices queueFamilyIndices;
+    getPhysicalDevice(fixture.instance, device, fixture.surface, queueFamilyIndices).shouldBeTrue;
 }
 
 //Graphics card
 bool getPhysicalDevice(ref VkInstance instance,
-    ref VkPhysicalDevice physicalDevice, ref VkSurfaceKHR surface)
+    ref VkPhysicalDevice physicalDevice, ref VkSurfaceKHR surface, ref QueueFamilyIndices queueFamilyIndices)
 {
     uint numberOfDevices = 0;
 
@@ -113,7 +114,7 @@ bool getPhysicalDevice(ref VkInstance instance,
     foreach (VkPhysicalDevice device; physicalDevices)
     {
         int score = rateDeviceSuitability(device);
-        if (score > 0 && isDeviceSuitable(device, surface))
+        if (score > 0 && isDeviceSuitable(device, surface, queueFamilyIndices))
         {
             //debug writelnUt("devices score which are suitable!: ", score);
             useableDevices[score] = device;
@@ -191,7 +192,7 @@ QueueFamilyIndices findQueueFamilies(ref VkPhysicalDevice device, ref VkSurfaceK
     return indices;
 }
 
-bool isDeviceSuitable(ref VkPhysicalDevice physicalDevice, ref VkSurfaceKHR surface)
+bool isDeviceSuitable(ref VkPhysicalDevice physicalDevice, ref VkSurfaceKHR surface, ref QueueFamilyIndices queueFamilyIndices)
 {
     import vuv.graphics.vulkan;
 
@@ -201,7 +202,8 @@ bool isDeviceSuitable(ref VkPhysicalDevice physicalDevice, ref VkSurfaceKHR surf
         return false;
     }
     auto swapChainDetails = querySwapChainSupport(physicalDevice, surface);
-    return findQueueFamilies(physicalDevice, surface).isComplete && deviceExtensionSupported && swapChainDetails
+    queueFamilyIndices = findQueueFamilies(physicalDevice, surface);
+    return queueFamilyIndices.isComplete && deviceExtensionSupported && swapChainDetails
         .isSwapChainAdequate;
 }
 
