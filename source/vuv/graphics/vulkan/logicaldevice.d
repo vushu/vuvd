@@ -10,7 +10,7 @@ version (unittest)
     import unit_threaded;
     import vuv.graphics.vulkan.physicaldevice;
     import vuv.graphics.vulkan.windowsurface;
-    import vuv.graphics.vulkan.staticvalues : getRequiredValidationLayers;
+    import vuv.graphics.vulkan.staticvalues;
     import bindbc.sdl;
 
     struct TestVkDeviceFixture
@@ -60,12 +60,12 @@ unittest
     VkSurfaceKHR surface;
     VkQueue graphicsQueue, presentQueue;
     assert(createSurface(fixture.window, fixture.instanceFixture.instance, surface));
-    instantiateDevice(fixture.physicalDevice, device, getRequiredValidationLayers, surface, graphicsQueue, presentQueue)
+    instantiateDevice(fixture.physicalDevice, device, getRequiredValidationLayers, getRequiredDeviceExtensions, surface, graphicsQueue, presentQueue)
         .shouldBeTrue;
 }
 
 bool instantiateDevice(ref VkPhysicalDevice physicalDevice, ref VkDevice device,
-    ref const(char)*[] validationLayers, ref VkSurfaceKHR surface, ref VkQueue graphicsQueue, ref VkQueue presentQueue)
+    ref const(char)*[] validationLayers, ref const(char)*[] deviceExtentions, ref VkSurfaceKHR surface, ref VkQueue graphicsQueue, ref VkQueue presentQueue)
 {
     auto foundQueueFamily = findQueueFamilies(physicalDevice, surface);
 
@@ -74,12 +74,13 @@ bool instantiateDevice(ref VkPhysicalDevice physicalDevice, ref VkDevice device,
     auto createQueueInfos = createQueueInfos(foundQueueFamily.graphicsFamily.get,
         foundQueueFamily.presentFamily.get, queuePriority);
 
-    if (!initializeDevice(physicalDevice, createQueueInfos, device, validationLayers))
+    if (!initializeDevice(physicalDevice, createQueueInfos, device, validationLayers, deviceExtentions))
     {
         debug writelnUt("Failed to initDevice");
         return false;
     }
 
+    loadDeviceLevelFunctions(device);
     vkGetDeviceQueue(device, foundQueueFamily.graphicsFamily.get, 0, &graphicsQueue);
     vkGetDeviceQueue(device, foundQueueFamily.presentFamily.get, 0, &presentQueue);
     return true;
@@ -100,7 +101,7 @@ unittest
 
     VkDevice device;
 
-    initializeDevice(fixture.physicalDevice, queueCreateInfos, device, getRequiredValidationLayers)
+    initializeDevice(fixture.physicalDevice, queueCreateInfos, device, getRequiredValidationLayers, getRequiredDeviceExtensions)
         .shouldBeTrue;
 
     VkQueue graphicsQueue;
@@ -108,7 +109,7 @@ unittest
 }
 
 bool initializeDevice(ref VkPhysicalDevice physicalDevice, ref VkDeviceQueueCreateInfo[] queueCreateInfos,
-    ref VkDevice device, ref const(char)*[] validationLayers)
+    ref VkDevice device, ref const(char)*[] validationLayers, ref const(char)*[] deviceExtentions)
 {
     VkPhysicalDeviceFeatures deviceFeatures;
 
@@ -124,6 +125,9 @@ bool initializeDevice(ref VkPhysicalDevice physicalDevice, ref VkDeviceQueueCrea
     createInfo.enabledExtensionCount = 0;
 
     createInfo.enabledLayerCount = 0;
+
+    createInfo.enabledExtensionCount = cast(uint) deviceExtentions.length;
+    createInfo.ppEnabledExtensionNames = deviceExtentions.ptr;
 
     debug
     {

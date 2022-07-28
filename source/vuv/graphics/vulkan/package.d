@@ -40,15 +40,15 @@ struct Vulkan
         loadDeviceLevelFunctions(_instance);
 
         assert(instantiateDevice(_physicalDevice, _device,
-                getRequiredValidationLayers, _surface, _graphicsQueue, _presentQueue));
+                getRequiredValidationLayers, getRequiredDeviceExtensions, _surface, _graphicsQueue, _presentQueue));
 
-
-        // assert(createSwapchain(_device, _physicalDevice, _surface, sdlWindow, _swapchain));
+        assert(createSwapchain(_device, _physicalDevice, _surface, sdlWindow, _swapchain));
 
     }
 
     nothrow @nogc @trusted ~this()
     {
+        vkDestroySwapchainKHR(_device, _swapchain, null);
         vkDestroyDevice(_device, null);
 
         debug destroyDebugUtilMessengerExt(_instance, _debugMessenger, null);

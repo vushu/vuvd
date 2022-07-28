@@ -103,11 +103,7 @@ bool initializeVkInstance(ref VkInstance instance,
             return false;
         }
     }
-
     //important to load functions
-    debug import unit_threaded : writelnUt;
-
-    // debug writelnUt("OK to initializeVkInstance vk debug feature!");
     loadInstanceLevelFunctions(instance);
     return true;
 
@@ -163,6 +159,8 @@ VkDebugUtilsMessengerCreateInfoEXT createVulkanDebug() @trusted nothrow
 
     debug import std.stdio;
 
+    debug import unit_threaded : writelnUt;
+
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo;
     debugCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
     debugCreateInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT
@@ -179,6 +177,7 @@ VkDebugUtilsMessengerCreateInfoEXT createVulkanDebug() @trusted nothrow
         if (messageSeverity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT)
         {
             //debug writeln("VERBOSE ", to!string(pCallbackData.pMessage));
+            // debug writeln("VULKAN CALLBACK VERBOSE: ", to!string(pCallbackData.pMessage));
         }
         if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
         {

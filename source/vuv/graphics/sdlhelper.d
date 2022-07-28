@@ -21,6 +21,7 @@ version (unittest)
         {
             debug writelnUt("Destroying TestSDLWindowFixture");
             SDL_DestroyWindow(window);
+            SDL_Vulkan_UnloadLibrary();
             SDL_Quit();
         }
 
@@ -108,6 +109,7 @@ SDL_Window* createSDLWindow(string title, int width, int height) nothrow @nogc @
     {
         if (SDL_Window* sdlWindow = createWindow(title, width, height))
         {
+            // loadGlobalLevelFunctions();
             loadGlobalLevelFunctions(
                 cast(PFN_vkGetInstanceProcAddr) SDL_Vulkan_GetVkGetInstanceProcAddr());
             return sdlWindow;

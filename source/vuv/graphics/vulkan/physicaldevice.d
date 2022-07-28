@@ -195,7 +195,7 @@ bool isDeviceSuitable(ref VkPhysicalDevice physicalDevice, ref VkSurfaceKHR surf
 {
     import vuv.graphics.vulkan;
 
-    bool deviceExtensionSupported = checkDeviceExtensionSupport(physicalDevice, getRequiredDeviceExtensions);
+    bool deviceExtensionSupported = checkDeviceExtensionSupport(physicalDevice, getRequiredDeviceExtensionsAsSet);
     if (!deviceExtensionSupported)
     {
         return false;
@@ -225,15 +225,15 @@ bool checkDeviceExtensionSupport(ref VkPhysicalDevice device, bool[string] requi
 
     import core.stdc.string : strcmp;
 
-    debug writelnUt("extensionCount count: ", extensionCount);
+    // debug writelnUt("extensionCount count: ", extensionCount);
 
     foreach (availableExtension; availableDeviceExtensions)
     {
         requiredDeviceExtentions.remove(to!string(availableExtension.extensionName.ptr));
     }
 
-    debug writelnUt("required length: ", requiredDeviceExtentions.length);
-    debug writelnUt("availableDeviceExtensions length: ", availableDeviceExtensions.length);
+    // debug writelnUt("required length: ", requiredDeviceExtentions.length);
+    // debug writelnUt("availableDeviceExtensions length: ", availableDeviceExtensions.length);
     return requiredDeviceExtentions.length == 0;
 
 }
