@@ -63,14 +63,13 @@ unittest
 
     VkSurfaceKHR surface;
     assert(createSurface(fixture.window, fixture.instanceFixture.instance, surface));
-    instantiateDevice(fixture.physicalDevice, device, getRequiredValidationLayers, getRequiredDeviceExtensions, surface)
+    instantiateDevice(fixture.physicalDevice, device, getRequiredValidationLayers, getRequiredDeviceExtensions, fixture.queueFamilyIndices)
         .shouldBeTrue;
 }
 
 bool instantiateDevice(ref VkPhysicalDevice physicalDevice, ref VkDevice device,
-    ref const(char)*[] validationLayers, ref const(char)*[] deviceExtentions, ref VkSurfaceKHR surface)
+    ref const(char)*[] validationLayers, ref const(char)*[] deviceExtentions, ref QueueFamilyIndices foundQueueFamily)
 {
-    auto foundQueueFamily = findQueueFamilies(physicalDevice, surface);
 
     float queuePriority = 1.0f;
 
@@ -84,8 +83,7 @@ bool instantiateDevice(ref VkPhysicalDevice physicalDevice, ref VkDevice device,
     }
 
     loadDeviceLevelFunctions(device);
-    // vkGetDeviceQueue(device, foundQueueFamily.graphicsFamily.get, 0, &graphicsQueue);
-    // vkGetDeviceQueue(device, foundQueueFamily.presentFamily.get, 0, &presentQueue);
+
     return true;
 
 }

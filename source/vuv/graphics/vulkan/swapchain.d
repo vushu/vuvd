@@ -66,11 +66,15 @@ version (unittest)
             auto surface = deviceFixture.instanceFixture.surface;
             auto instance = deviceFixture.instanceFixture.instance;
             auto queueFamilyIndices = deviceFixture.queueFamilyIndices;
+
             loadDeviceLevelFunctions(instance);
+
             VkDevice device;
             SwapchainData swapchainData;
-            instantiateDevice(physicalDevice, device, getRequiredValidationLayers, getRequiredDeviceExtensions, surface)
+
+            instantiateDevice(physicalDevice, device, getRequiredValidationLayers, getRequiredDeviceExtensions, queueFamilyIndices)
                 .shouldBeTrue;
+
             // important
             _fixture = RefCounted!TestSwapchainFixture(device, physicalDevice, surface,
                 swapchainData,
@@ -219,16 +223,18 @@ VkExtent2D chooseSwapExtent(ref VkSurfaceCapabilitiesKHR capabilities, SDL_Windo
     return actualExtent;
 }
 
-@Tags("createSwapchain") @("Testing createSwapchain") unittest
+@Tags("createSwapchain")
+@("Testing createSwapchain")
+unittest
 {
     auto fixture = getSwapchainFixture;
     VkSwapchainKHR swapchain;
     SwapchainData swapchainData;
-    QueueFamilyIndices queueFamilyIndices = fixture.queueFamilyIndices;
+    uint graphicsFamily = fixture.queueFamilyIndices.graphicsFamily.get;
+    uint presentFamily = fixture.queueFamilyIndices.presentFamily.get;
 
-    createSwapchain(fixture.device, fixture.physicalDevice, fixture.surface, fixture.window, swapchain, swapchainData, queueFamilyIndices
-            .graphicsFamily.get, queueFamilyIndices.presentFamily.get)
-        .shouldBeTrue;
+    createSwapchain(fixture.device, fixture.physicalDevice, fixture.surface, fixture.window, swapchain, swapchainData,
+        graphicsFamily, presentFamily).shouldBeTrue;
     scope (exit)
     {
         vkDestroySwapchainKHR(fixture.device, swapchain, null);
@@ -236,10 +242,17 @@ VkExtent2D chooseSwapExtent(ref VkSurfaceCapabilitiesKHR capabilities, SDL_Windo
 }
 
 bool createSwapchain(ref VkDevice device, ref VkPhysicalDevice physicalDevice, ref VkSurfaceKHR surface,
-    SDL_Window* window, ref VkSwapchainKHR swapchain, ref SwapchainData swapchainData, uint graphicsFamilyIndex, uint presentFamilyIndex)
+    SDL_Window* window, ref VkSwapchainKHR swapchain, ref SwapchainData swapchainData,
+    uint graphicsFamilyIndex,
+    uint presentFamilyIndex)
 {
     auto swapChainDetails = querySwapChainSupport(physicalDevice, surface);
-    auto swapchainCreateInfo = createSwapchainInfo(physicalDevice, swapChainDetails, surface, swapchainData, window, graphicsFamilyIndex, presentFamilyIndex);
+    auto swapchainCreateInfo = createSwapchainInfo(physicalDevice, swapChainDetails,
+        surface,
+        swapchainData,
+        window,
+        graphicsFamilyIndex,
+        presentFamilyIndex);
     return vkCreateSwapchainKHR(device, &swapchainCreateInfo, null, &swapchain) == VkResult
         .VK_SUCCESS;
 
@@ -329,14 +342,18 @@ uint getImageCount(uint minImageCount, uint maxImageCount)
     auto fixture = getSwapchainFixture;
     VkSwapchainKHR swapchain;
     SwapchainData swapchainData;
-    QueueFamilyIndices indices = fixture.queueFamilyIndices;
-    createSwapchain(fixture.device, fixture.physicalDevice, fixture.surface, fixture.window, swapchain, swapchainData, indices
-            .graphicsFamily.get, indices.presentFamily.get)
-        .shouldBeTrue;
+    uint graphicsFamily = fixture.queueFamilyIndices.graphicsFamily.get;
+    uint presentFamily = fixture.queueFamilyIndices.presentFamily.get;
+    createSwapchain(fixture.device, fixture.physicalDevice,
+        fixture.surface, fixture.window,
+        swapchain, swapchainData,
+        graphicsFamily, presentFamily).shouldBeTrue;
+
     scope (exit)
     {
         vkDestroySwapchainKHR(fixture.device, swapchain, null);
     }
+
     auto swapchainImages = getSwapchainImages(fixture.device, swapchain);
     swapchainImages.length.shouldBeGreaterThan(0);
 

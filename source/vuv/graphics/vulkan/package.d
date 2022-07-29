@@ -40,7 +40,7 @@ struct Vulkan
         loadDeviceLevelFunctions(_instance);
 
         assert(instantiateDevice(_physicalDevice, _device,
-                getRequiredValidationLayers, getRequiredDeviceExtensions, _surface));
+                getRequiredValidationLayers, getRequiredDeviceExtensions, _queueFamilyIndices));
 
         _graphicsQueue = getQueue(_device, _queueFamilyIndices.graphicsFamily.get);
         _presentQueue = getQueue(_device, _queueFamilyIndices.presentFamily.get);
