@@ -92,7 +92,7 @@ version (unittest)
 {
     auto fixture = getSwapchainFixture();
     auto details = querySwapChainSupport(fixture.physicalDevice, fixture.surface);
-    details.isSwapChainAdequate.shouldBeTrue;
+    details.isSwapchainAdequate.shouldBeTrue;
     details.formats.length.shouldBeGreaterThan(0);
     details.presentModes.length.shouldBeGreaterThan(0);
 
@@ -138,7 +138,7 @@ SwapchainSupportDetails querySwapChainSupport(ref VkPhysicalDevice physicalDevic
     return details;
 }
 
-bool isSwapChainAdequate(ref SwapchainSupportDetails details)
+bool isSwapchainAdequate(ref SwapchainSupportDetails details)
 {
     return details.formats.length > 0 && details.presentModes.length > 0;
 }
@@ -161,7 +161,7 @@ VkSurfaceFormatKHR chooseSwapSurfaceFormat(ref VkSurfaceFormatKHR[] availableFor
 {
     auto fixture = getSwapchainFixture();
     auto details = querySwapChainSupport(fixture.physicalDevice, fixture.surface);
-    details.isSwapChainAdequate.shouldBeTrue;
+    details.isSwapchainAdequate.shouldBeTrue;
     auto choosenPresentMode = chooseSwapPresentMode(details.presentModes);
     debug writelnUt("Chosen presentMode: ", choosenPresentMode);
 
@@ -184,7 +184,7 @@ VkPresentModeKHR chooseSwapPresentMode(ref VkPresentModeKHR[] availablePresentMo
 {
     auto fixture = getSwapchainFixture;
     auto details = querySwapChainSupport(fixture.physicalDevice, fixture.surface);
-    details.isSwapChainAdequate.shouldBeTrue;
+    details.isSwapchainAdequate.shouldBeTrue;
     details.capabilities.currentExtent.width = uint32_t.max;
     auto extent = chooseSwapExtent(details.capabilities, fixture.window);
 

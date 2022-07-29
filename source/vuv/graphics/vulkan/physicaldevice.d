@@ -6,7 +6,11 @@ import std.typecons : RefCounted, refCounted;
 import std.algorithm.searching : maxElement;
 import vuv.graphics.vulkan.swapchain;
 
-debug import unit_threaded;
+debug
+{
+    import unit_threaded;
+    import std.stdio : writeln;
+}
 import std.typecons : Nullable;
 
 struct QueueFamilyIndices
@@ -73,7 +77,7 @@ version (unittest)
             assert(createSurface(sdlWindowFixture.window, instance, surface));
 
             _fixture = RefCounted!TestVkInstanceFixture(instance,
-                debugMessenger, surface, sdlWindowFixture);
+                    debugMessenger, surface, sdlWindowFixture);
             return _fixture;
         }
 
@@ -93,8 +97,8 @@ unittest
 }
 
 //Graphics card
-bool getPhysicalDevice(ref VkInstance instance,
-    ref VkPhysicalDevice physicalDevice, ref VkSurfaceKHR surface, ref QueueFamilyIndices queueFamilyIndices)
+bool getPhysicalDevice(ref VkInstance instance, ref VkPhysicalDevice physicalDevice,
+        ref VkSurfaceKHR surface, ref QueueFamilyIndices queueFamilyIndices)
 {
     uint numberOfDevices = 0;
 
@@ -192,19 +196,25 @@ QueueFamilyIndices findQueueFamilies(ref VkPhysicalDevice device, ref VkSurfaceK
     return indices;
 }
 
-bool isDeviceSuitable(ref VkPhysicalDevice physicalDevice, ref VkSurfaceKHR surface, ref QueueFamilyIndices queueFamilyIndices)
+bool isDeviceSuitable(ref VkPhysicalDevice physicalDevice,
+        ref VkSurfaceKHR surface, ref QueueFamilyIndices queueFamilyIndices)
 {
     import vuv.graphics.vulkan;
 
-    bool deviceExtensionSupported = checkDeviceExtensionSupport(physicalDevice, getRequiredDeviceExtensionsAsSet);
+    bool deviceExtensionSupported = checkDeviceExtensionSupport(physicalDevice,
+            getRequiredDeviceExtensionsAsSet);
     if (!deviceExtensionSupported)
     {
         return false;
     }
     auto swapChainDetails = querySwapChainSupport(physicalDevice, surface);
-    queueFamilyIndices = findQueueFamilies(physicalDevice, surface);
-    return queueFamilyIndices.isComplete && deviceExtensionSupported && swapChainDetails
-        .isSwapChainAdequate;
+    auto foundIndices = findQueueFamilies(physicalDevice, surface);
+    if (foundIndices.isComplete && deviceExtensionSupported && swapChainDetails.isSwapchainAdequate)
+    {
+        queueFamilyIndices = foundIndices;
+        return true;
+    }
+    return false;
 }
 
 bool checkDeviceExtensionSupport(ref VkPhysicalDevice device, bool[string] requiredDeviceExtentions)
@@ -223,7 +233,7 @@ bool checkDeviceExtensionSupport(ref VkPhysicalDevice device, bool[string] requi
     VkExtensionProperties[] availableDeviceExtensions = new VkExtensionProperties[extensionCount];
 
     vkEnumerateDeviceExtensionProperties(device, null, &extensionCount,
-        availableDeviceExtensions.ptr);
+            availableDeviceExtensions.ptr);
 
     import core.stdc.string : strcmp;
 

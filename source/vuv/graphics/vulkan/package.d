@@ -39,20 +39,24 @@ struct Vulkan
 
         loadDeviceLevelFunctions(_instance);
 
-        assert(instantiateDevice(_physicalDevice, _device,
-                getRequiredValidationLayers, getRequiredDeviceExtensions, _queueFamilyIndices));
+        assert(instantiateDevice(_physicalDevice, _device, getRequiredValidationLayers,
+                getRequiredDeviceExtensions, _queueFamilyIndices));
 
+        writeln("graphicsFamily: ", _queueFamilyIndices.graphicsFamily.get);
+        writeln("presentFamily ", _queueFamilyIndices.presentFamily.get);
         _graphicsQueue = getQueue(_device, _queueFamilyIndices.graphicsFamily.get);
         _presentQueue = getQueue(_device, _queueFamilyIndices.presentFamily.get);
 
-        assert(createSwapchain(_device, _physicalDevice, _surface, sdlWindow, _swapchain, _swapchainData, _queueFamilyIndices
-                .graphicsFamily.get, _queueFamilyIndices.presentFamily.get));
+        assert(createSwapchain(_device, _physicalDevice, _surface, sdlWindow, _swapchain, _swapchainData,
+                _queueFamilyIndices.graphicsFamily.get, _queueFamilyIndices.presentFamily.get));
+        writeln("Successfully created vulkan context");
 
     }
 
     nothrow @nogc @trusted ~this()
     {
         vkDestroySwapchainKHR(_device, _swapchain, null);
+
         vkDestroyDevice(_device, null);
 
         debug destroyDebugUtilMessengerExt(_instance, _debugMessenger, null);

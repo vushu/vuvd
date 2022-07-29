@@ -22,6 +22,9 @@ version (unittest)
         QueueFamilyIndices queueFamilyIndices;
 
         RefCounted!TestVkInstanceFixture instanceFixture;
+        ~this()
+        {
+        }
     }
 
     RefCounted!TestVkDeviceFixture getVkDeviceFixture()
@@ -46,7 +49,8 @@ version (unittest)
             getPhysicalDevice(fixture.instance, physicalDevice, fixture.surface, queueIndices)
                 .shouldBeTrue;
 
-            _fixture = RefCounted!TestVkDeviceFixture(physicalDevice, window, queueIndices, fixture);
+            _fixture = RefCounted!TestVkDeviceFixture(physicalDevice, window,
+                    queueIndices, fixture);
 
             return _fixture;
         }
@@ -63,20 +67,20 @@ unittest
 
     VkSurfaceKHR surface;
     assert(createSurface(fixture.window, fixture.instanceFixture.instance, surface));
-    instantiateDevice(fixture.physicalDevice, device, getRequiredValidationLayers, getRequiredDeviceExtensions, fixture.queueFamilyIndices)
-        .shouldBeTrue;
+    instantiateDevice(fixture.physicalDevice, device, getRequiredValidationLayers,
+            getRequiredDeviceExtensions, fixture.queueFamilyIndices).shouldBeTrue;
 }
 
-bool instantiateDevice(ref VkPhysicalDevice physicalDevice, ref VkDevice device,
-    ref const(char)*[] validationLayers, ref const(char)*[] deviceExtentions, ref QueueFamilyIndices foundQueueFamily)
+bool instantiateDevice(ref VkPhysicalDevice physicalDevice, ref VkDevice device, ref const(char)*[] validationLayers,
+        ref const(char)*[] deviceExtentions, ref QueueFamilyIndices foundQueueFamily)
 {
 
     float queuePriority = 1.0f;
 
-    auto createQueueInfos = createQueueInfos(foundQueueFamily.graphicsFamily.get,
-        foundQueueFamily.presentFamily.get, queuePriority);
+    auto createInfos = createQueueInfos(foundQueueFamily.graphicsFamily.get,
+            foundQueueFamily.presentFamily.get, queuePriority);
 
-    if (!initializeDevice(physicalDevice, createQueueInfos, device, validationLayers, deviceExtentions))
+    if (!initializeDevice(physicalDevice, createInfos, device, validationLayers, deviceExtentions))
     {
         debug writelnUt("Failed to initDevice");
         return false;
@@ -93,24 +97,25 @@ unittest
 {
     auto fixture = getVkDeviceFixture();
 
-    auto foundQueueFamily = findQueueFamilies(fixture.physicalDevice, fixture
-            .instanceFixture.surface);
+    auto foundQueueFamily = findQueueFamilies(fixture.physicalDevice,
+            fixture.instanceFixture.surface);
 
     float priority = 1.0f;
-    auto queueCreateInfos = createQueueInfos(foundQueueFamily.graphicsFamily.get, foundQueueFamily.presentFamily.get,
-        priority);
+    auto queueCreateInfos = createQueueInfos(foundQueueFamily.graphicsFamily.get,
+            foundQueueFamily.presentFamily.get, priority);
 
     VkDevice device;
 
-    initializeDevice(fixture.physicalDevice, queueCreateInfos, device, getRequiredValidationLayers, getRequiredDeviceExtensions)
-        .shouldBeTrue;
+    initializeDevice(fixture.physicalDevice, queueCreateInfos, device,
+            getRequiredValidationLayers, getRequiredDeviceExtensions).shouldBeTrue;
 
     VkQueue graphicsQueue;
     vkGetDeviceQueue(device, foundQueueFamily.graphicsFamily.get, 0, &graphicsQueue);
 }
 
 bool initializeDevice(ref VkPhysicalDevice physicalDevice, ref VkDeviceQueueCreateInfo[] queueCreateInfos,
-    ref VkDevice device, ref const(char)*[] validationLayers, ref const(char)*[] deviceExtentions)
+        ref VkDevice device, ref const(char)*[] validationLayers,
+        ref const(char)*[] deviceExtentions)
 {
     VkPhysicalDeviceFeatures deviceFeatures;
 
@@ -139,8 +144,8 @@ bool initializeDevice(ref VkPhysicalDevice physicalDevice, ref VkDeviceQueueCrea
     return vkCreateDevice(physicalDevice, &createInfo, null, &device) == VK_SUCCESS;
 }
 
-VkDeviceQueueCreateInfo[] createQueueInfos(uint queueFamily,
-    uint presentFamily, ref float queuePriority)
+VkDeviceQueueCreateInfo[] createQueueInfos(uint queueFamily, uint presentFamily,
+        ref float queuePriority)
 {
     VkDeviceQueueCreateInfo[] queueCreateInfos;
     bool[uint] uniqueQueueFamilies;
