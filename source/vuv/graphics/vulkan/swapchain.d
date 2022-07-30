@@ -72,14 +72,12 @@ version (unittest)
             VkDevice device;
             SwapchainData swapchainData;
 
-            instantiateDevice(physicalDevice, device, getRequiredValidationLayers, getRequiredDeviceExtensions, queueFamilyIndices)
-                .shouldBeTrue;
+            instantiateDevice(physicalDevice, device, getRequiredValidationLayers,
+                    getRequiredDeviceExtensions, queueFamilyIndices).shouldBeTrue;
 
             // important
-            _fixture = RefCounted!TestSwapchainFixture(device, physicalDevice, surface,
-                swapchainData,
-                queueFamilyIndices,
-                window, deviceFixture);
+            _fixture = RefCounted!TestSwapchainFixture(device, physicalDevice,
+                    surface, swapchainData, queueFamilyIndices, window, deviceFixture);
             return _fixture;
         }
 
@@ -107,8 +105,8 @@ version (unittest)
 
 }
 
-@trusted
-SwapchainSupportDetails querySwapChainSupport(ref VkPhysicalDevice physicalDevice, ref VkSurfaceKHR surface)
+@trusted SwapchainSupportDetails querySwapChainSupport(
+        ref VkPhysicalDevice physicalDevice, ref VkSurfaceKHR surface)
 {
     SwapchainSupportDetails details;
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &details.capabilities);
@@ -122,8 +120,8 @@ SwapchainSupportDetails querySwapChainSupport(ref VkPhysicalDevice physicalDevic
         // details.formats = new VkSurfaceFormatKHR[formatCount];
         // setting length allocates on the heap as above
         details.formats.length = formatCount;
-        vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, details
-                .formats.ptr);
+        vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface,
+                &formatCount, details.formats.ptr);
     }
 
     uint presentModeCount;
@@ -131,8 +129,8 @@ SwapchainSupportDetails querySwapChainSupport(ref VkPhysicalDevice physicalDevic
     if (presentModeCount > 0)
     {
         details.presentModes = new VkPresentModeKHR[presentModeCount];
-        vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, details
-                .presentModes.ptr);
+        vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface,
+                &presentModeCount, details.presentModes.ptr);
     }
 
     return details;
@@ -148,7 +146,7 @@ VkSurfaceFormatKHR chooseSwapSurfaceFormat(ref VkSurfaceFormatKHR[] availableFor
     foreach (availableFormat; availableFormats)
     {
         if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB
-            && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+                && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
         {
             return availableFormat;
         }
@@ -193,8 +191,8 @@ VkPresentModeKHR chooseSwapPresentMode(ref VkPresentModeKHR[] availablePresentMo
 
 }
 
-@trusted
-VkExtent2D chooseSwapExtent(ref VkSurfaceCapabilitiesKHR capabilities, SDL_Window* sdlWindow)
+@trusted VkExtent2D chooseSwapExtent(ref VkSurfaceCapabilitiesKHR capabilities,
+        SDL_Window* sdlWindow)
 {
     debug import unit_threaded;
 
@@ -216,10 +214,10 @@ VkExtent2D chooseSwapExtent(ref VkSurfaceCapabilitiesKHR capabilities, SDL_Windo
         writelnUt("minHeight: ", capabilities.minImageExtent.height);
     }
 
-    actualExtent.width = clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities
-            .maxImageExtent.width);
-    actualExtent.height = clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities
-            .maxImageExtent.height);
+    actualExtent.width = clamp(actualExtent.width,
+            capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+    actualExtent.height = clamp(actualExtent.height,
+            capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
     return actualExtent;
 }
 
@@ -233,46 +231,38 @@ unittest
     uint graphicsFamily = fixture.queueFamilyIndices.graphicsFamily.get;
     uint presentFamily = fixture.queueFamilyIndices.presentFamily.get;
 
-    createSwapchain(fixture.device, fixture.physicalDevice, fixture.surface, fixture.window, swapchain, swapchainData,
-        graphicsFamily, presentFamily).shouldBeTrue;
+    createSwapchain(fixture.device, fixture.physicalDevice, fixture.surface,
+            fixture.window, swapchain, swapchainData, graphicsFamily, presentFamily).shouldBeTrue;
     scope (exit)
     {
         vkDestroySwapchainKHR(fixture.device, swapchain, null);
     }
 }
 
-bool createSwapchain(ref VkDevice device, ref VkPhysicalDevice physicalDevice, ref VkSurfaceKHR surface,
-    SDL_Window* window, ref VkSwapchainKHR swapchain, ref SwapchainData swapchainData,
-    uint graphicsFamilyIndex,
-    uint presentFamilyIndex)
+bool createSwapchain(ref VkDevice device, ref VkPhysicalDevice physicalDevice,
+        ref VkSurfaceKHR surface, SDL_Window* window, ref VkSwapchainKHR swapchain,
+        ref SwapchainData swapchainData, uint graphicsFamilyIndex, uint presentFamilyIndex)
 {
     auto swapChainDetails = querySwapChainSupport(physicalDevice, surface);
     auto swapchainCreateInfo = createSwapchainInfo(physicalDevice, swapChainDetails,
-        surface,
-        swapchainData,
-        window,
-        graphicsFamilyIndex,
-        presentFamilyIndex);
+            surface, swapchainData, window, graphicsFamilyIndex, presentFamilyIndex);
     return vkCreateSwapchainKHR(device, &swapchainCreateInfo, null, &swapchain) == VkResult
         .VK_SUCCESS;
 
 }
 
-VkSwapchainCreateInfoKHR createSwapchainInfo(
-    ref VkPhysicalDevice physicalDevice,
-    ref SwapchainSupportDetails defails,
-    ref VkSurfaceKHR surface,
-    ref SwapchainData swapchainData,
-    SDL_Window* window,
-    uint graphicsFamilyIndex, uint presentFamilyIndex)
+VkSwapchainCreateInfoKHR createSwapchainInfo(ref VkPhysicalDevice physicalDevice,
+        ref SwapchainSupportDetails defails, ref VkSurfaceKHR surface,
+        ref SwapchainData swapchainData, SDL_Window* window,
+        uint graphicsFamilyIndex, uint presentFamilyIndex)
 {
 
     SwapchainSupportDetails swapChainSupport = querySwapChainSupport(physicalDevice, surface);
     VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
     VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
     VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities, window);
-    uint imageCount = getImageCount(swapChainSupport.capabilities.minImageCount, swapChainSupport
-            .capabilities.maxImageCount);
+    uint imageCount = getImageCount(swapChainSupport.capabilities.minImageCount,
+            swapChainSupport.capabilities.maxImageCount);
 
     swapchainData.swapChainExtent = extent;
     swapchainData.swapChainImageFormat = surfaceFormat.format;
@@ -320,7 +310,8 @@ VkSwapchainCreateInfoKHR createSwapchainInfo(
 
 }
 
-@("Testing getImageCount") unittest
+@("Testing getImageCount")
+unittest
 {
     getImageCount(6, 6).should.be == 6;
     getImageCount(6, 0).should.be == 7;
@@ -344,10 +335,8 @@ uint getImageCount(uint minImageCount, uint maxImageCount)
     SwapchainData swapchainData;
     uint graphicsFamily = fixture.queueFamilyIndices.graphicsFamily.get;
     uint presentFamily = fixture.queueFamilyIndices.presentFamily.get;
-    createSwapchain(fixture.device, fixture.physicalDevice,
-        fixture.surface, fixture.window,
-        swapchain, swapchainData,
-        graphicsFamily, presentFamily).shouldBeTrue;
+    createSwapchain(fixture.device, fixture.physicalDevice, fixture.surface,
+            fixture.window, swapchain, swapchainData, graphicsFamily, presentFamily).shouldBeTrue;
 
     scope (exit)
     {
@@ -356,6 +345,7 @@ uint getImageCount(uint minImageCount, uint maxImageCount)
 
     auto swapchainImages = getSwapchainImages(fixture.device, swapchain);
     swapchainImages.length.shouldBeGreaterThan(0);
+    writelnUt("Length: ", swapchainImages.length);
 
 }
 

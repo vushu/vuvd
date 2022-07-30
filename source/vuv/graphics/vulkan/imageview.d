@@ -2,11 +2,13 @@ module vuv.graphics.vulkan.imageview;
 import erupted;
 import vuv.graphics.vulkan.physicaldevice : QueueFamilyIndices;
 import vuv.graphics.vulkan.swapchain;
+import unit_threaded : Tags;
 
 debug import std.stdio;
 
 version (unittest)
 {
+
     import vuv.graphics.vulkan.swapchain;
     import unit_threaded;
 
@@ -19,7 +21,6 @@ version (unittest)
         SwapchainData swapchainData;
         ~this()
         {
-            writeln("HEJ");
             vkDestroySwapchainKHR(device, swapchain, null);
         }
     }
@@ -44,17 +45,20 @@ version (unittest)
 
 }
 
+@Tags("createImageViews")
 @("Testing createImageViews")
 unittest
 {
     auto fixture = getImageViewFixture;
 
-    auto imageViews = createImageViews(fixture.device, fixture.swapchainImages,
-            fixture.swapchainData);
-    imageViews.length.shouldEqual(fixture.swapchainImages.length);
+    VkImageView[] swapchainImageViews = createImageViews(fixture.device,
+            fixture.swapchainImages, fixture.swapchainData);
+    swapchainImageViews.length.shouldEqual(fixture.swapchainImages.length);
+
     scope (exit)
     {
-        cleanupImageView(fixture.device, imageViews);
+
+        swapchainImageViews.cleanupImageView(fixture.device);
     }
 
 }
@@ -62,13 +66,16 @@ unittest
 VkImageView[] createImageViews(ref VkDevice device, ref VkImage[] swapchainImages,
         ref SwapchainData swapchainData)
 {
-    VkImageView[] swapchainImageViews = new VkImageView[swapchainImages.length];
+    debug writeln("SwapchainImages: ", swapchainImages.length);
+    VkImageView[] swapchainImageViews;
+    swapchainImageViews.reserve(swapchainImages.length);
+
     foreach (i, swapchainImage; swapchainImages)
     {
         VkImageViewCreateInfo createInfo;
 
         createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        createInfo.image = swapchainImages[i];
+        createInfo.image = swapchainImage;
         createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
         createInfo.format = swapchainData.swapChainImageFormat;
         createInfo.components.r = VkComponentSwizzle.VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -80,19 +87,22 @@ VkImageView[] createImageViews(ref VkDevice device, ref VkImage[] swapchainImage
         createInfo.subresourceRange.levelCount = 1;
         createInfo.subresourceRange.baseArrayLayer = 0;
         createInfo.subresourceRange.layerCount = 1;
-        if (vkCreateImageView(device, &createInfo, null,
-                &swapchainImageViews[i]) == VkResult.VK_SUCCESS)
+        VkImageView imageView;
+
+        if (vkCreateImageView(device, &createInfo, null, &imageView) != VkResult.VK_SUCCESS)
         {
-            debug writeln("Failed to create swaphainImagesViews");
+            debug writeln("Failed to create SwapchainImageViews");
             break;
         }
+        swapchainImageViews ~= imageView;
 
     }
-
+    debug writeln("SwapchainImageViews Length: ", swapchainImageViews.length);
     return swapchainImageViews;
+
 }
 
-void cleanupImageView(ref VkDevice device, ref VkImageView[] imageViews)
+void cleanupImageView(ref VkImageView[] imageViews, ref VkDevice device) nothrow @nogc
 {
     foreach (imageview; imageViews)
     {

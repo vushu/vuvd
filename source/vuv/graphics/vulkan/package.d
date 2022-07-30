@@ -8,6 +8,7 @@ import vuv.graphics.vulkan.physicaldevice;
 import vuv.graphics.vulkan.logicaldevice;
 import vuv.graphics.vulkan.surface;
 import vuv.graphics.vulkan.swapchain;
+import vuv.graphics.vulkan.imageview;
 import erupted.vulkan_lib_loader;
 
 import unit_threaded : Tags;
@@ -42,19 +43,27 @@ struct Vulkan
         assert(instantiateDevice(_physicalDevice, _device, getRequiredValidationLayers,
                 getRequiredDeviceExtensions, _queueFamilyIndices));
 
-        writeln("graphicsFamily: ", _queueFamilyIndices.graphicsFamily.get);
-        writeln("presentFamily ", _queueFamilyIndices.presentFamily.get);
+        //writeln("graphicsFamily: ", _queueFamilyIndices.graphicsFamily.get);
+        //writeln("presentFamily ", _queueFamilyIndices.presentFamily.get);
+
         _graphicsQueue = getQueue(_device, _queueFamilyIndices.graphicsFamily.get);
         _presentQueue = getQueue(_device, _queueFamilyIndices.presentFamily.get);
 
         assert(createSwapchain(_device, _physicalDevice, _surface, sdlWindow, _swapchain, _swapchainData,
                 _queueFamilyIndices.graphicsFamily.get, _queueFamilyIndices.presentFamily.get));
+        _swapchainImages = getSwapchainImages(_device, _swapchain);
+
+        _imageViews = createImageViews(_device, _swapchainImages, _swapchainData);
+        assert(_imageViews.length > 0);
+
         writeln("Successfully created vulkan context");
 
     }
 
     nothrow @nogc @trusted ~this()
     {
+
+        _imageViews.cleanupImageView(_device);
         vkDestroySwapchainKHR(_device, _swapchain, null);
 
         vkDestroyDevice(_device, null);
@@ -76,4 +85,7 @@ private:
     VkSwapchainKHR _swapchain;
     QueueFamilyIndices _queueFamilyIndices;
     SwapchainData _swapchainData;
+    VkImage[] _swapchainImages;
+    VkImageView[] _imageViews;
+
 }
