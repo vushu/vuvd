@@ -9,7 +9,10 @@ version (unittest)
     // mixin runTestsMain!("vuv.graphics.vulkan", "vuv.graphics.vulkan.instance");
     mixin runTestsMain!("vuv.graphics.renderer", "vuv.graphics.vulkan.instance",
         "vuv.graphics.sdlhelper", "vuv.graphics.vulkan.physicaldevice",
-        "vuv.graphics.vulkan.logicaldevice", "vuv.graphics.vulkan.surface");
+        "vuv.graphics.vulkan.logicaldevice",
+        "vuv.graphics.vulkan.surface",
+        "vuv.graphics.vulkan.graphicspipelines.fileutils"
+    );
 }
 else
 {
