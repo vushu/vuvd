@@ -15,3 +15,12 @@ bool[string] getRequiredDeviceExtensionsAsSet()
     requireddDeviceExtensions["VK_KHR_swapchain"] = false;
     return requireddDeviceExtensions;
 }
+
+static ref VkDynamicState[] getDynamicStates()
+{
+    return _dynamicStates;
+}
+
+private static VkDynamicState[] _dynamicStates = [
+    VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR
+];
