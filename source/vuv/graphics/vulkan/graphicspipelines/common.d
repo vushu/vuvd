@@ -11,6 +11,18 @@ version (unittest)
     import vuv.graphics.vulkan.graphicspipelines.fileutils;
 }
 
+struct GraphicsPipelineCreateInfos
+{
+    VkPipelineShaderStageCreateInfo[] shaderStages;
+    VkPipelineVertexInputStateCreateInfo vertexInputCreateInfo;
+    VkPipelineInputAssemblyStateCreateInfo vertexInputAssemblyCreateInfo;
+    VkPipelineViewportStateCreateInfo viewportStateCreateInfo;
+    VkPipelineRasterizationStateCreateInfo rasterizationCreateInfo;
+    VkPipelineMultisampleStateCreateInfo multisampleCreateInfo;
+    VkPipelineColorBlendStateCreateInfo colorBlendStateCreateInfo;
+    VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo;
+}
+
 @Tags("createShaderModule")
 @("Testing createShaderModule")
 unittest
@@ -260,4 +272,14 @@ bool createRenderPass(ref VkDevice device, ref VkRenderPassCreateInfo renderPass
 {
     return vkCreateRenderPass(device, &renderPassCreateInfo, null, &renderPass) == VkResult
         .VK_SUCCESS;
+}
+
+bool createGraphicsPipeline(
+    ref GraphicsPipelineCreateInfos createInfos
+)
+{
+    VkGraphicsPipelineCreateInfo pipelineCreateInfo;
+    pipelineCreateInfo.sType = VkStructureType.VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    pipelineCreateInfo.stageCount = cast(uint) createInfos.shaderStages.length;
+    return true;
 }

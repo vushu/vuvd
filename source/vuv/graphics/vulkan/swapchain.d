@@ -187,6 +187,7 @@ VkPresentModeKHR chooseSwapPresentMode(ref VkPresentModeKHR[] availablePresentMo
     auto extent = chooseSwapExtent(details.capabilities, fixture.window);
 
     extent.width.should.be == 600;
+    writeln("If this fails disable tile mode popOS");
     extent.height.should.be == details.capabilities.minImageExtent.height;
 
 }
