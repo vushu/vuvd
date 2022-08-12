@@ -26,6 +26,7 @@ version (unittest)
         ~this()
         {
             vkDestroyRenderPass(device, renderPass, null);
+            cleanupImageView(swapchainImageViews, device);
         }
     }
 
@@ -49,16 +50,8 @@ version (unittest)
             return TestFramebufferFixture(fixture.device, colorAttachmentDescription,
                 colorAttachmentRefence, fixture.swapchainData, renderPass,
                 swapchainImageViews, fixture);
-
-            // TestFramebufferFixture fix;
-            // _fixture = fix.initializeFixture();
-
-            // return _fixture;
-
         }
     }
-
-    // static RefCounted!TestFramebufferFixture _fixture;
 }
 
 @("Testing createSwapchainFramebuffers")
