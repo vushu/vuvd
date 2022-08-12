@@ -9,6 +9,8 @@ version (unittest)
     import unit_threaded;
     import vuv.graphics.vulkan.imageview : getImageViewFixture;
     import vuv.graphics.vulkan.graphicspipelines.fileutils;
+    import vuv.graphics.vulkan.graphicspipelines.renderpass;
+    import vuv.graphics.vulkan.graphicspipelines.pipelinelayout;
 }
 
 struct GraphicsPipelineCreateInfos
@@ -21,6 +23,9 @@ struct GraphicsPipelineCreateInfos
     VkPipelineMultisampleStateCreateInfo multisampleCreateInfo;
     VkPipelineColorBlendStateCreateInfo colorBlendStateCreateInfo;
     VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo;
+    VkRenderPass renderPass;
+    VkPipelineLayout pipelineLayout;
+    VkPipeline graphicsPipeline;
 }
 
 @Tags("createShaderModule")
@@ -43,7 +48,6 @@ unittest
 
 VkShaderModule createShaderModule(ref VkDevice device, const ref byte[] code)
 {
-
     VkShaderModuleCreateInfo createInfo;
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     createInfo.codeSize = code.length;
@@ -76,7 +80,6 @@ VkPipelineShaderStageCreateInfo createFragmentShaderPipeline(ref VkShaderModule 
     fragmentStageInfo.Module = framentShaderModule;
     fragmentStageInfo.pName = "main";
     return fragmentStageInfo;
-
 }
 
 VkPipelineDynamicStateCreateInfo createDynamicStates(ref VkDynamicState[] dynamicStates)
@@ -153,7 +156,7 @@ VkPipelineMultisampleStateCreateInfo createMultisampling()
     return multisamplingCreateInfo;
 }
 
-VkPipelineColorBlendAttachmentState createColorBlendAttacment()
+VkPipelineColorBlendAttachmentState createColorBlendAttachment()
 {
     VkPipelineColorBlendAttachmentState colorBlendAttacmentInfo;
     colorBlendAttacmentInfo.colorWriteMask = VK_COLOR_COMPONENT_R_BIT
@@ -162,8 +165,8 @@ VkPipelineColorBlendAttachmentState createColorBlendAttacment()
     return colorBlendAttacmentInfo;
 }
 
-VkPipelineColorBlendStateCreateInfo createColorBleding(
-    ref VkPipelineColorBlendAttachmentState colorBlendAttachment)
+VkPipelineColorBlendStateCreateInfo createColorBlending(
+        ref VkPipelineColorBlendAttachmentState colorBlendAttachment)
 {
     VkPipelineColorBlendStateCreateInfo colorBlending;
 
@@ -179,107 +182,90 @@ VkPipelineColorBlendStateCreateInfo createColorBleding(
     return colorBlending;
 }
 
-@("Testing createPipelineLayout")
+@("Testing createGraphicsPipeline")
 unittest
 {
-    auto fixture = getImageViewFixture;
-    VkPipelineLayout pipelineLayout;
-    scope (exit)
-    {
-        vkDestroyPipelineLayout(fixture.device, pipelineLayout, null);
-    }
-    assert(createPipelineLayout(fixture.device, pipelineLayout));
-}
 
-bool createPipelineLayout(ref VkDevice device, ref VkPipelineLayout pipelineLayout)
-{
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo;
-    pipelineLayoutInfo.sType = VkStructureType.VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = 0;
-    pipelineLayoutInfo.pushConstantRangeCount = 0;
-
-    return vkCreatePipelineLayout(device, &pipelineLayoutInfo, null, &pipelineLayout) == VkResult
-        .VK_SUCCESS;
-}
-
-VkAttachmentDescription createAttachmentDescription(ref VkFormat swapChainImageFormat)
-{
-    VkAttachmentDescription colorAttachment;
-    colorAttachment.format = swapChainImageFormat;
-    colorAttachment.samples = VkSampleCountFlagBits.VK_SAMPLE_COUNT_1_BIT;
-    colorAttachment.loadOp = VkAttachmentLoadOp.VK_ATTACHMENT_LOAD_OP_CLEAR;
-    colorAttachment.storeOp = VkAttachmentStoreOp.VK_ATTACHMENT_STORE_OP_STORE;
-    colorAttachment.stencilLoadOp = VkAttachmentLoadOp.VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    colorAttachment.stencilStoreOp = VkAttachmentStoreOp.VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    colorAttachment.initialLayout = VkImageLayout.VK_IMAGE_LAYOUT_UNDEFINED;
-    colorAttachment.finalLayout = VkImageLayout.VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-    return colorAttachment;
-}
-
-VkAttachmentReference createColorAttachmentReference()
-{
-    VkAttachmentReference colorAttachmentReference;
-    colorAttachmentReference.attachment = 0;
-    colorAttachmentReference.layout = VkImageLayout.VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-    return colorAttachmentReference;
-}
-
-VkSubpassDescription createSubpassDescription(ref VkAttachmentReference colorAttacmentReference)
-{
-    VkSubpassDescription subpass;
-    subpass.pipelineBindPoint = VkPipelineBindPoint.VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpass.colorAttachmentCount = 1;
-    subpass.pColorAttachments = &colorAttacmentReference;
-    return subpass;
-}
-
-VkRenderPassCreateInfo createRenderPassInfo(
-    ref VkAttachmentDescription colorAttachment, ref VkSubpassDescription subpass)
-{
-    VkRenderPassCreateInfo renderPassInfo;
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    renderPassInfo.attachmentCount = 1;
-    renderPassInfo.pAttachments = &colorAttachment;
-    renderPassInfo.subpassCount = 1;
-    renderPassInfo.pSubpasses = &subpass;
-    return renderPassInfo;
-}
-
-@Tags("createRenderPass")
-@("Testing createRenderPass")
-unittest
-{
+    import vuv.graphics.vulkan.graphicspipelines.trianglepipeline : createTriangleShaderStages;
+    import vuv.graphics.vulkan.staticvalues;
 
     auto fixture = getImageViewFixture;
     assert(fixture.swapchainData.swapChainImageFormat != VK_FORMAT_UNDEFINED);
     writelnUt("imageFormat", fixture.swapchainData.swapChainImageFormat);
 
     auto colorAttachmentDescription = createAttachmentDescription(
-        fixture.swapchainData.swapChainImageFormat);
+            fixture.swapchainData.swapChainImageFormat);
     auto colorAttachmentRefence = createColorAttachmentReference();
     auto subPass = createSubpassDescription(colorAttachmentRefence);
-    auto createInfo = createRenderPassInfo(colorAttachmentDescription, subPass);
+    auto renderPassCreateInfo = createRenderPassInfo(colorAttachmentDescription, subPass);
+    auto colorBlendAttachment = createColorBlendAttachment();
     VkRenderPass renderPass;
-    assert(createRenderPass(fixture.device, createInfo, renderPass));
+    VkPipelineLayout pipelineLayout;
+
+    assert(createRenderPass(fixture.device, renderPassCreateInfo, renderPass));
+
+    assert(createPipelineLayout(fixture.device, pipelineLayout));
+
+    auto stages = createTriangleShaderStages(fixture.device);
+
+    auto graphicsCreateInfo = createGraphicsPipelineCreateInfos(fixture.device,
+            fixture.swapchainData, colorBlendAttachment, renderPass, pipelineLayout, stages);
+
+    assert(createGraphicsPipeline(fixture.device, graphicsCreateInfo));
     scope (exit)
     {
         vkDestroyRenderPass(fixture.device, renderPass, null);
+        vkDestroyPipeline(fixture.device, graphicsCreateInfo.graphicsPipeline, null);
+        vkDestroyPipelineLayout(fixture.device, pipelineLayout, null);
     }
 
 }
 
-bool createRenderPass(ref VkDevice device, ref VkRenderPassCreateInfo renderPassCreateInfo, ref VkRenderPass renderPass)
-{
-    return vkCreateRenderPass(device, &renderPassCreateInfo, null, &renderPass) == VkResult
-        .VK_SUCCESS;
-}
-
-bool createGraphicsPipeline(
-    ref GraphicsPipelineCreateInfos createInfos
-)
+bool createGraphicsPipeline(ref VkDevice device, ref GraphicsPipelineCreateInfos createInfos)
 {
     VkGraphicsPipelineCreateInfo pipelineCreateInfo;
     pipelineCreateInfo.sType = VkStructureType.VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     pipelineCreateInfo.stageCount = cast(uint) createInfos.shaderStages.length;
-    return true;
+    pipelineCreateInfo.pStages = createInfos.shaderStages.ptr;
+    pipelineCreateInfo.pVertexInputState = &createInfos.vertexInputCreateInfo;
+    pipelineCreateInfo.pInputAssemblyState = &createInfos.vertexInputAssemblyCreateInfo;
+    pipelineCreateInfo.pRasterizationState = &createInfos.rasterizationCreateInfo;
+    pipelineCreateInfo.pMultisampleState = &createInfos.multisampleCreateInfo;
+    pipelineCreateInfo.pDepthStencilState = null;
+    pipelineCreateInfo.pColorBlendState = &createInfos.colorBlendStateCreateInfo;
+    pipelineCreateInfo.pDynamicState = &createInfos.dynamicStateCreateInfo;
+
+    pipelineCreateInfo.layout = createInfos.pipelineLayout;
+    pipelineCreateInfo.renderPass = createInfos.renderPass;
+    pipelineCreateInfo.subpass = 0;
+
+    pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
+    pipelineCreateInfo.basePipelineIndex = -1;
+    return vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1,
+            &pipelineCreateInfo, null, &createInfos.graphicsPipeline) == VK_SUCCESS;
+}
+
+GraphicsPipelineCreateInfos createGraphicsPipelineCreateInfos(ref VkDevice device,
+        ref SwapchainData swapchainData, ref VkPipelineColorBlendAttachmentState colorBlendAttachment,
+        ref VkRenderPass renderPass, ref VkPipelineLayout pipelineLayout,
+        ref VkPipelineShaderStageCreateInfo[] renderStages)
+{
+    import vuv.graphics.vulkan.graphicspipelines.trianglepipeline : createTriangleShaderStages;
+    import vuv.graphics.vulkan.staticvalues;
+
+    assert(swapchainData.swapChainImageFormat != VK_FORMAT_UNDEFINED);
+
+    GraphicsPipelineCreateInfos graphicsCreateInfo;
+    graphicsCreateInfo.pipelineLayout = pipelineLayout;
+    graphicsCreateInfo.renderPass = renderPass;
+    graphicsCreateInfo.shaderStages = renderStages;
+    graphicsCreateInfo.vertexInputCreateInfo = createVertexInput();
+    graphicsCreateInfo.vertexInputAssemblyCreateInfo = createInputAssemblyWithTriangle();
+    graphicsCreateInfo.rasterizationCreateInfo = createRasterizerInfo();
+    graphicsCreateInfo.multisampleCreateInfo = createMultisampling();
+    graphicsCreateInfo.colorBlendStateCreateInfo = createColorBlending(colorBlendAttachment);
+    graphicsCreateInfo.dynamicStateCreateInfo = createDynamicStates(getDynamicStates);
+    graphicsCreateInfo.viewportStateCreateInfo = createViewportState();
+    return graphicsCreateInfo;
+
 }

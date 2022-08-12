@@ -6,6 +6,12 @@ import vuv.graphics.vulkan.staticvalues;
 
 void createTriangleGraphicsPipeline(ref VkDevice device)
 {
+
+    auto dynamicStageCreateInfo = createDynamicStates(getDynamicStates);
+}
+
+VkPipelineShaderStageCreateInfo[] createTriangleShaderStages(ref VkDevice device)
+{
     auto vertexShaderCode = readFile("shaders/triangle/vert.spv");
     auto fragmentShaderCode = readFile("shaders/triangle/frag.spv");
 
@@ -19,5 +25,10 @@ void createTriangleGraphicsPipeline(ref VkDevice device)
         fragmentShaderStageInfo, vertexShaderStageInfo
     ];
 
-    auto dynamicStageCreateInfo = createDynamicStates(getDynamicStates);
+    return shaderStages;
 }
+
+
+
+
+

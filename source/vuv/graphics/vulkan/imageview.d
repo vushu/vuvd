@@ -3,6 +3,7 @@ import erupted;
 import vuv.graphics.vulkan.physicaldevice : QueueFamilyIndices;
 import vuv.graphics.vulkan.swapchain;
 import unit_threaded : Tags;
+import std.typecons : RefCounted, Unique;
 
 debug import std.stdio;
 
@@ -19,8 +20,10 @@ version (unittest)
         VkSwapchainKHR swapchain;
         VkImage[] swapchainImages;
         SwapchainData swapchainData;
+        // RefCounted!TestSwapchainFixture swapchainFixture;
         ~this()
         {
+            debug writeln("noooooo destroyed ");
             vkDestroySwapchainKHR(device, swapchain, null);
         }
     }
@@ -38,8 +41,25 @@ version (unittest)
                     swapchainData, indices.graphicsFamily.get, indices.presentFamily.get));
             auto swapchainImages = getSwapchainImages(fixture.device, swapchain);
             auto testFixture = TestImageViewFixture(fixture.device, swapchain,
-                    swapchainImages, swapchainData);
+                swapchainImages, swapchainData);
             return testFixture;
+        }
+    }
+
+    RefCounted!TestImageViewFixture getRefCountedImageViewFixture()
+    {
+        synchronized
+        {
+
+            auto fixture = getSwapchainFixture;
+            VkSwapchainKHR swapchain;
+            SwapchainData swapchainData;
+            QueueFamilyIndices indices = fixture.queueFamilyIndices;
+            assert(createSwapchain(fixture.device, fixture.physicalDevice, fixture.surface, fixture.window, swapchain,
+                    swapchainData, indices.graphicsFamily.get, indices.presentFamily.get));
+            auto swapchainImages = getSwapchainImages(fixture.device, swapchain);
+            return RefCounted!TestImageViewFixture(fixture.device, swapchain,
+                swapchainImages, swapchainData);
         }
     }
 
@@ -52,7 +72,7 @@ unittest
     auto fixture = getImageViewFixture;
 
     VkImageView[] swapchainImageViews = createImageViews(fixture.device,
-            fixture.swapchainImages, fixture.swapchainData);
+        fixture.swapchainImages, fixture.swapchainData);
     swapchainImageViews.length.shouldEqual(fixture.swapchainImages.length);
 
     scope (exit)
@@ -64,7 +84,7 @@ unittest
 }
 
 VkImageView[] createImageViews(ref VkDevice device, ref VkImage[] swapchainImages,
-        ref SwapchainData swapchainData)
+    ref SwapchainData swapchainData)
 {
     debug writeln("SwapchainImages: ", swapchainImages.length);
     VkImageView[] swapchainImageViews;
