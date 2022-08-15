@@ -41,8 +41,8 @@ version (unittest)
         RefCounted!TestFramebufferFixture framebufferFixture;
         ~this()
         {
-            vkDestroyPipelineLayout(device, pipelineLayout, null);
             commandRecordData.swapchainFramebuffers.cleanupSwapchainFramebuffers(device);
+            vkDestroyPipelineLayout(device, pipelineLayout, null);
         }
     }
 
@@ -75,7 +75,8 @@ version (unittest)
                     .renderPass, fixture.swapchainData.swapChainExtent);
             swapchainBuffers.length.shouldBeGreaterThan(0);
             CommandRecordData recordData = CommandRecordData(commandBuffer, fixture.renderPass, fixture
-                    .imageViewFixture.indices.graphicsFamily.get, swapchainBuffers);
+                    .imageViewFixture.indices.graphicsFamily.get, swapchainBuffers, fixture
+                    .swapchainData.swapChainExtent);
 
             return TestCommandBufferFixture(fixture.device, fixture.swapchainData, fixture.renderPass, fixture
                     .swapchainImageViews, commandPool, commandBuffer, pipelineLayout, graphicsPipeline, recordData, fixture);

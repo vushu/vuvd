@@ -15,6 +15,7 @@ import vuv.graphics.vulkan.graphicspipelines.trianglepipeline;
 import vuv.graphics.vulkan.graphicspipelines.common;
 import vuv.graphics.vulkan.graphicspipelines.pipelinelayout;
 import vuv.graphics.vulkan.graphicspipelines.renderpass;
+import vuv.graphics.vulkan.framebuffer;
 
 import unit_threaded : Tags;
 
@@ -83,6 +84,8 @@ struct Vulkan
             _swapchainData, colorBlendAttachment, _renderPass, _pipelineLayout, stages);
 
         assert(createGraphicsPipeline(_device, graphicsCreateInfos, _graphicsPipeline));
+        _swapchainFramebuffers = createSwapchainFramebuffers(_device, _imageViews, _renderPass, _swapchainData
+                .swapChainExtent);
 
         writeln("Successfully created vulkan context");
 
@@ -90,6 +93,8 @@ struct Vulkan
 
     nothrow @nogc @trusted ~this()
     {
+        cleanupSwapchainFramebuffers(_swapchainFramebuffers, _device);
+        vkDestroyPipelineLayout(_device, _pipelineLayout, null);
 
         vkDestroyCommandPool(_device, _commandPool, null);
         _imageViews.cleanupImageView(_device);
@@ -121,5 +126,6 @@ private:
     VkCommandBuffer _commandBuffer;
     VkPipelineLayout _pipelineLayout;
     VkPipeline _graphicsPipeline;
+    VkFramebuffer[] _swapchainFramebuffers;
 
 }

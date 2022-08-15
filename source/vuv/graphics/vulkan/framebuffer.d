@@ -147,7 +147,7 @@ VkFramebuffer[] createSwapchainFramebuffers(ref VkDevice device,
 
 }
 
-void cleanupSwapchainFramebuffers(ref VkFramebuffer[] swapchainFramebuffers, ref VkDevice device)
+void cleanupSwapchainFramebuffers(ref VkFramebuffer[] swapchainFramebuffers, ref VkDevice device) nothrow @nogc
 {
     foreach (VkFramebuffer framebuffer; swapchainFramebuffers)
     {
