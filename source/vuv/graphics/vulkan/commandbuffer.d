@@ -1,13 +1,80 @@
 module vuv.graphics.vulkan.commandbuffer;
 import erupted;
 import vuv.graphics.vulkan.physicaldevice;
-import std.typecons : Nullable;
+import std.typecons : Nullable, RefCounted;
+
+struct CommandRecordData
+{
+    VkCommandBuffer commandBuffer;
+    VkRenderPass renderPass;
+    uint imageIndex;
+    VkFramebuffer[] swapchainFramebuffers;
+    VkExtent2D swapchainExtent;
+
+}
 
 version (unittest)
 {
 
     import vuv.graphics.vulkan.swapchain;
     import vuv.graphics.vulkan.framebuffer;
+    import vuv.graphics.vulkan.graphicspipelines.common;
+    import vuv.graphics.vulkan.framebuffer;
+    import vuv.graphics.vulkan.graphicspipelines.trianglepipeline;
+    import vuv.graphics.vulkan.framebuffer;
+    import unit_threaded;
+
+    struct TestCommandBufferFixture
+    {
+        // @disable
+        // this(this);
+        VkDevice device;
+        SwapchainData swapchainData;
+        VkRenderPass renderPass;
+        VkImageView[] swapchainImageViews;
+        VkCommandPool commandPool;
+        VkCommandBuffer commandBuffer;
+        VkPipelineLayout pipelineLayout;
+        CommandRecordData commandRecordData;
+        // RefCounted!TestFramebufferFixture framebufferFixture;
+        ~this()
+        {
+        }
+    }
+
+    TestCommandBufferFixture getCommandBufferFixture()
+    {
+        synchronized
+        {
+            auto fixture = getFramebufferFixture();
+            VkCommandPool commandPool;
+            VkCommandBuffer commandBuffer;
+            assert(createCommandPool(fixture.device,
+                    fixture.imageViewFixture.indices.graphicsFamily.get,
+                    commandPool));
+            assert(createCommandBuffer(fixture.device, commandPool, commandBuffer));
+            auto stages = createTriangleShaderStages(fixture.device);
+
+            auto colorBlendAttachment = createColorBlendAttachment();
+
+            VkPipelineLayout pipelineLayout;
+
+            auto graphicsCreateInfos = createGraphicsPipelineCreateInfos(fixture.device,
+                fixture.swapchainData, colorBlendAttachment, fixture.renderPass, pipelineLayout, stages);
+
+            assert(createGraphicsPipeline(fixture.device, graphicsCreateInfos));
+
+            auto swapchainBuffers = createSwapchainFramebuffers(fixture.device, fixture.swapchainImageViews, fixture
+                    .renderPass, fixture.swapchainData.swapChainExtent);
+            swapchainBuffers.length.shouldBeGreaterThan(0);
+
+            CommandRecordData recordData = CommandRecordData(commandBuffer, fixture.renderPass, fixture
+                    .imageViewFixture.indices.graphicsFamily.get, swapchainBuffers);
+            return TestCommandBufferFixture(fixture.device, fixture.swapchainData, fixture.renderPass, fixture
+                    .swapchainImageViews, commandPool, commandBuffer, pipelineLayout, recordData);
+
+        }
+    }
 
 }
 
@@ -25,7 +92,7 @@ unittest
 
     VkCommandBuffer commandBuffer;
     assert(createCommandBuffer(fixture.device, commandPool, commandBuffer));
-    
+
     //createSwapchainFramebuffers(fixture.device, fixture. )
 }
 
@@ -41,7 +108,7 @@ bool createCommandPool(ref VkDevice device, uint graphicsFamilyIndex, out VkComm
 }
 
 bool createCommandBuffer(ref VkDevice device, ref VkCommandPool commandPool,
-        out VkCommandBuffer commandBuffer)
+    out VkCommandBuffer commandBuffer)
 {
     VkCommandBufferAllocateInfo allocCreateInfo;
     allocCreateInfo.sType = VkStructureType.VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -52,20 +119,91 @@ bool createCommandBuffer(ref VkDevice device, ref VkCommandPool commandPool,
 
 }
 
-bool createCommandBufferBegin(ref VkCommandBuffer commandBuffer,
-        out VkCommandBufferBeginInfo bufferBeginInfo)
+bool createCommandBufferBegin(ref VkCommandBuffer commandBuffer)
 {
+    VkCommandBufferBeginInfo bufferBeginInfo;
     bufferBeginInfo.sType = VkStructureType.VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     bufferBeginInfo.flags = 0;
     bufferBeginInfo.pInheritanceInfo = null;
     return vkBeginCommandBuffer(commandBuffer, &bufferBeginInfo) == VkResult.VK_SUCCESS;
 }
 
-bool createRenderPassBegin(ref VkCommandBuffer commandBuffer, ref VkRenderPass renderPass,
-        uint imageIndex, out VkRenderPassBeginInfo renderPassBeginInfo)
+void createRenderPassBegin(
+    ref VkCommandBuffer commandBuffer,
+    ref VkRenderPass renderPass,
+    uint imageIndex,
+    ref VkFramebuffer[] swapchainFramebuffers,
+    ref VkExtent2D swapchainExtent)
 {
+    VkRenderPassBeginInfo renderPassBeginInfo;
     renderPassBeginInfo.sType = VkStructureType.VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassBeginInfo.renderPass = renderPass;
-    return true;
-    //renderPassBeginInfo.framebuffer = 
+    renderPassBeginInfo.framebuffer = swapchainFramebuffers[imageIndex];
+    renderPassBeginInfo.renderArea.offset = VkOffset2D(0, 0);
+    renderPassBeginInfo.renderArea.extent = swapchainExtent;
+    VkClearValue[2] clearValues;
+    VkClearColorValue color = {float32: [0.0f, 0.0f, 0.0f, 1.0f]};
+    VkClearDepthStencilValue depthStencil = {depth: 1.0f, stencil: 0};
+    clearValues[0].color = color;
+    clearValues[1].depthStencil = depthStencil;
+
+    renderPassBeginInfo.clearValueCount = clearValues.length;
+    renderPassBeginInfo.pClearValues = clearValues.ptr;
+
+    vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+}
+
+void setCommandViewport(ref VkCommandBuffer commandBuffer, ref VkExtent2D swapchainExtent)
+{
+
+    VkViewport viewport;
+    viewport.x = 0.0f;
+    viewport.y = 0.0f;
+    viewport.width = cast(float) swapchainExtent.width;
+    viewport.height = cast(float) swapchainExtent.height;
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+    vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+}
+
+void setCommandScissor(ref VkCommandBuffer commandBuffer, ref VkExtent2D swapchainExtent)
+{
+    VkRect2D scissor;
+    scissor.offset.x = 0;
+    scissor.offset.y = 0;
+    scissor.extent = swapchainExtent;
+    vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+}
+
+@("Testing recordCommandBuffer")
+unittest
+{
+    // auto fixture = getCommandBufferFixture;
+
+    auto colorBlendAttachment = createColorBlendAttachment();
+
+    VkPipeline graphicsPipeline;
+    // assert(recordCommandBuffer(fixture.commandRecordData, graphicsPipeline));
+
+}
+
+bool recordCommandBuffer(ref CommandRecordData commandRecordData, ref VkPipeline graphicsPipeline)
+{
+    assert(createCommandBufferBegin(commandRecordData.commandBuffer));
+
+    createRenderPassBegin(commandRecordData.commandBuffer,
+        commandRecordData.renderPass, commandRecordData.imageIndex, commandRecordData
+            .swapchainFramebuffers, commandRecordData.swapchainExtent);
+
+    vkCmdBindPipeline(commandRecordData.commandBuffer,
+        VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+    setCommandViewport(commandRecordData.commandBuffer, commandRecordData.swapchainExtent);
+
+    setCommandScissor(commandRecordData.commandBuffer, commandRecordData.swapchainExtent);
+
+    vkCmdDraw(commandRecordData.commandBuffer, 3, 1, 0, 0);
+
+    vkCmdEndRenderPass(commandRecordData.commandBuffer);
+
+    return vkEndCommandBuffer(commandRecordData.commandBuffer) == VkResult.VK_SUCCESS;
 }

@@ -58,9 +58,13 @@ version (unittest)
 unittest
 {
     auto fixture = getFramebufferFixture();
-    createSwapchainFramebuffers(fixture.device, fixture.swapchainImageViews,
-        fixture.renderPass, fixture.swapchainData.swapChainExtent).length
-        .shouldBeGreaterThan(0);
+    auto swapchainbuffers = createSwapchainFramebuffers(fixture.device, fixture.swapchainImageViews,
+        fixture.renderPass, fixture.swapchainData.swapChainExtent);
+    swapchainbuffers.length.shouldBeGreaterThan(0);
+    scope (exit)
+    {
+        cleanupSwapchainFramebuffers(swapchainbuffers, fixture.device);
+    }
 
 }
 
@@ -92,4 +96,12 @@ VkFramebuffer[] createSwapchainFramebuffers(ref VkDevice device,
     }
     return swapchainFramebuffers;
 
+}
+
+void cleanupSwapchainFramebuffers(ref VkFramebuffer[] swapchainFramebuffers, ref VkDevice device)
+{
+    foreach (VkFramebuffer framebuffer; swapchainFramebuffers)
+    {
+        vkDestroyFramebuffer(device, framebuffer, null);
+    }
 }

@@ -10,6 +10,7 @@ import vuv.graphics.vulkan.surface;
 import vuv.graphics.vulkan.swapchain;
 import vuv.graphics.vulkan.imageview;
 import erupted.vulkan_lib_loader;
+import vuv.graphics.vulkan.commandbuffer;
 
 import unit_threaded : Tags;
 
@@ -21,8 +22,8 @@ debug import unit_threaded;
 @("Test create Vulkan struct")
 unittest
 {
-    auto sdlWindowFixture = getSDLWindowFixture();
-    Vulkan vulkan = Vulkan("Test", sdlWindowFixture.window);
+    // auto sdlWindowFixture = getSDLWindowFixture();
+    // Vulkan vulkan = Vulkan("Test", sdlWindowFixture.window);
 }
 
 public:
@@ -43,9 +44,6 @@ struct Vulkan
         assert(instantiateDevice(_physicalDevice, _device, getRequiredValidationLayers,
                 getRequiredDeviceExtensions, _queueFamilyIndices));
 
-        //writeln("graphicsFamily: ", _queueFamilyIndices.graphicsFamily.get);
-        //writeln("presentFamily ", _queueFamilyIndices.presentFamily.get);
-
         _graphicsQueue = getQueue(_device, _queueFamilyIndices.graphicsFamily.get);
         _presentQueue = getQueue(_device, _queueFamilyIndices.presentFamily.get);
 
@@ -56,6 +54,10 @@ struct Vulkan
         _imageViews = createImageViews(_device, _swapchainImages, _swapchainData);
         assert(_imageViews.length > 0);
 
+        assert(createCommandPool(_device, _queueFamilyIndices.graphicsFamily.get, _commandPool));
+
+        assert(createCommandBuffer(_device, _commandPool, _commandBuffer));
+
         writeln("Successfully created vulkan context");
 
     }
@@ -63,6 +65,7 @@ struct Vulkan
     nothrow @nogc @trusted ~this()
     {
 
+        vkDestroyCommandPool(_device, _commandPool, null);
         _imageViews.cleanupImageView(_device);
         vkDestroySwapchainKHR(_device, _swapchain, null);
 
@@ -87,5 +90,7 @@ private:
     SwapchainData _swapchainData;
     VkImage[] _swapchainImages;
     VkImageView[] _imageViews;
+    VkCommandPool _commandPool;
+    VkCommandBuffer _commandBuffer;
 
 }

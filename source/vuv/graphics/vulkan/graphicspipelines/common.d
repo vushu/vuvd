@@ -144,6 +144,9 @@ VkPipelineRasterizationStateCreateInfo createRasterizerInfo()
     rasterizeInfo.cullMode = VK_CULL_MODE_BACK_BIT;
     rasterizeInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
     rasterizeInfo.depthBiasEnable = VK_FALSE;
+    rasterizeInfo.depthBiasConstantFactor = 0.0;
+    rasterizeInfo.depthBiasClamp = 0.0;
+    rasterizeInfo.depthBiasSlopeFactor = 0.0;
     return rasterizeInfo;
 }
 
@@ -229,18 +232,17 @@ bool createGraphicsPipeline(ref VkDevice device, ref GraphicsPipelineCreateInfos
     pipelineCreateInfo.pStages = createInfos.shaderStages.ptr;
     pipelineCreateInfo.pVertexInputState = &createInfos.vertexInputCreateInfo;
     pipelineCreateInfo.pInputAssemblyState = &createInfos.vertexInputAssemblyCreateInfo;
+    pipelineCreateInfo.pViewportState = &createInfos.viewportStateCreateInfo;
     pipelineCreateInfo.pRasterizationState = &createInfos.rasterizationCreateInfo;
     pipelineCreateInfo.pMultisampleState = &createInfos.multisampleCreateInfo;
-    pipelineCreateInfo.pDepthStencilState = null;
     pipelineCreateInfo.pColorBlendState = &createInfos.colorBlendStateCreateInfo;
     pipelineCreateInfo.pDynamicState = &createInfos.dynamicStateCreateInfo;
 
     pipelineCreateInfo.layout = createInfos.pipelineLayout;
     pipelineCreateInfo.renderPass = createInfos.renderPass;
     pipelineCreateInfo.subpass = 0;
-
     pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
-    pipelineCreateInfo.basePipelineIndex = -1;
+    // pipelineCreateInfo.basePipelineIndex = -1;
     return vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1,
             &pipelineCreateInfo, null, &createInfos.graphicsPipeline) == VK_SUCCESS;
 }

@@ -20,6 +20,7 @@ version (unittest)
         VkSwapchainKHR swapchain;
         VkImage[] swapchainImages;
         SwapchainData swapchainData;
+        QueueFamilyIndices indices;
         // RefCounted!TestSwapchainFixture swapchainFixture;
         ~this()
         {
@@ -41,7 +42,7 @@ version (unittest)
                     swapchainData, indices.graphicsFamily.get, indices.presentFamily.get));
             auto swapchainImages = getSwapchainImages(fixture.device, swapchain);
             auto testFixture = TestImageViewFixture(fixture.device, swapchain,
-                swapchainImages, swapchainData);
+                swapchainImages, swapchainData, indices);
             return testFixture;
         }
     }
@@ -59,7 +60,7 @@ version (unittest)
                     swapchainData, indices.graphicsFamily.get, indices.presentFamily.get));
             auto swapchainImages = getSwapchainImages(fixture.device, swapchain);
             return RefCounted!TestImageViewFixture(fixture.device, swapchain,
-                swapchainImages, swapchainData);
+                swapchainImages, swapchainData, indices);
         }
     }
 
