@@ -25,7 +25,6 @@ struct GraphicsPipelineCreateInfos
     VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo;
     VkRenderPass renderPass;
     VkPipelineLayout pipelineLayout;
-    VkPipeline graphicsPipeline;
 }
 
 @Tags("createShaderModule")
@@ -169,7 +168,7 @@ VkPipelineColorBlendAttachmentState createColorBlendAttachment()
 }
 
 VkPipelineColorBlendStateCreateInfo createColorBlending(
-        ref VkPipelineColorBlendAttachmentState colorBlendAttachment)
+    ref VkPipelineColorBlendAttachmentState colorBlendAttachment)
 {
     VkPipelineColorBlendStateCreateInfo colorBlending;
 
@@ -197,7 +196,7 @@ unittest
     writelnUt("imageFormat", fixture.swapchainData.swapChainImageFormat);
 
     auto colorAttachmentDescription = createAttachmentDescription(
-            fixture.swapchainData.swapChainImageFormat);
+        fixture.swapchainData.swapChainImageFormat);
     auto colorAttachmentRefence = createColorAttachmentReference();
     auto subPass = createSubpassDescription(colorAttachmentRefence);
     auto renderPassCreateInfo = createRenderPassInfo(colorAttachmentDescription, subPass);
@@ -212,19 +211,20 @@ unittest
     auto stages = createTriangleShaderStages(fixture.device);
 
     auto graphicsCreateInfo = createGraphicsPipelineCreateInfos(fixture.device,
-            fixture.swapchainData, colorBlendAttachment, renderPass, pipelineLayout, stages);
+        fixture.swapchainData, colorBlendAttachment, renderPass, pipelineLayout, stages);
 
-    assert(createGraphicsPipeline(fixture.device, graphicsCreateInfo));
+    VkPipeline graphicsPipeline;
+    assert(createGraphicsPipeline(fixture.device, graphicsCreateInfo, graphicsPipeline));
     scope (exit)
     {
         vkDestroyRenderPass(fixture.device, renderPass, null);
-        vkDestroyPipeline(fixture.device, graphicsCreateInfo.graphicsPipeline, null);
+        vkDestroyPipeline(fixture.device, graphicsPipeline, null);
         vkDestroyPipelineLayout(fixture.device, pipelineLayout, null);
     }
 
 }
 
-bool createGraphicsPipeline(ref VkDevice device, ref GraphicsPipelineCreateInfos createInfos)
+bool createGraphicsPipeline(ref VkDevice device, ref GraphicsPipelineCreateInfos createInfos, ref VkPipeline graphicsPipeline)
 {
     VkGraphicsPipelineCreateInfo pipelineCreateInfo;
     pipelineCreateInfo.sType = VkStructureType.VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -242,15 +242,15 @@ bool createGraphicsPipeline(ref VkDevice device, ref GraphicsPipelineCreateInfos
     pipelineCreateInfo.renderPass = createInfos.renderPass;
     pipelineCreateInfo.subpass = 0;
     pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
-    // pipelineCreateInfo.basePipelineIndex = -1;
+    pipelineCreateInfo.basePipelineIndex = -1;
     return vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1,
-            &pipelineCreateInfo, null, &createInfos.graphicsPipeline) == VK_SUCCESS;
+        &pipelineCreateInfo, null, &graphicsPipeline) == VK_SUCCESS;
 }
 
 GraphicsPipelineCreateInfos createGraphicsPipelineCreateInfos(ref VkDevice device,
-        ref SwapchainData swapchainData, ref VkPipelineColorBlendAttachmentState colorBlendAttachment,
-        ref VkRenderPass renderPass, ref VkPipelineLayout pipelineLayout,
-        ref VkPipelineShaderStageCreateInfo[] renderStages)
+    ref SwapchainData swapchainData, ref VkPipelineColorBlendAttachmentState colorBlendAttachment,
+    ref VkRenderPass renderPass, ref VkPipelineLayout pipelineLayout,
+    ref VkPipelineShaderStageCreateInfo[] renderStages)
 {
     import vuv.graphics.vulkan.graphicspipelines.trianglepipeline : createTriangleShaderStages;
     import vuv.graphics.vulkan.staticvalues;

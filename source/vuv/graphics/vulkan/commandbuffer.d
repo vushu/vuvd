@@ -1,7 +1,7 @@
 module vuv.graphics.vulkan.commandbuffer;
 import erupted;
 import vuv.graphics.vulkan.physicaldevice;
-import std.typecons : Nullable, RefCounted;
+import std.typecons : Nullable, RefCounted, Unique;
 
 struct CommandRecordData
 {
@@ -22,6 +22,7 @@ version (unittest)
     import vuv.graphics.vulkan.framebuffer;
     import vuv.graphics.vulkan.graphicspipelines.trianglepipeline;
     import vuv.graphics.vulkan.framebuffer;
+    import vuv.graphics.vulkan.graphicspipelines.pipelinelayout;
     import unit_threaded;
 
     struct TestCommandBufferFixture
@@ -35,10 +36,13 @@ version (unittest)
         VkCommandPool commandPool;
         VkCommandBuffer commandBuffer;
         VkPipelineLayout pipelineLayout;
+        VkPipeline graphicsPipeline;
         CommandRecordData commandRecordData;
-        // RefCounted!TestFramebufferFixture framebufferFixture;
+        RefCounted!TestFramebufferFixture framebufferFixture;
         ~this()
         {
+            vkDestroyPipelineLayout(device, pipelineLayout, null);
+            commandRecordData.swapchainFramebuffers.cleanupSwapchainFramebuffers(device);
         }
     }
 
@@ -46,7 +50,7 @@ version (unittest)
     {
         synchronized
         {
-            auto fixture = getFramebufferFixture();
+            auto fixture = getRefcountedFramebufferFixture();
             VkCommandPool commandPool;
             VkCommandBuffer commandBuffer;
             assert(createCommandPool(fixture.device,
@@ -59,20 +63,22 @@ version (unittest)
 
             VkPipelineLayout pipelineLayout;
 
+            assert(createPipelineLayout(fixture.device, pipelineLayout));
+
             auto graphicsCreateInfos = createGraphicsPipelineCreateInfos(fixture.device,
                 fixture.swapchainData, colorBlendAttachment, fixture.renderPass, pipelineLayout, stages);
 
-            assert(createGraphicsPipeline(fixture.device, graphicsCreateInfos));
+            VkPipeline graphicsPipeline;
+            assert(createGraphicsPipeline(fixture.device, graphicsCreateInfos, graphicsPipeline));
 
             auto swapchainBuffers = createSwapchainFramebuffers(fixture.device, fixture.swapchainImageViews, fixture
                     .renderPass, fixture.swapchainData.swapChainExtent);
             swapchainBuffers.length.shouldBeGreaterThan(0);
-
             CommandRecordData recordData = CommandRecordData(commandBuffer, fixture.renderPass, fixture
                     .imageViewFixture.indices.graphicsFamily.get, swapchainBuffers);
-            return TestCommandBufferFixture(fixture.device, fixture.swapchainData, fixture.renderPass, fixture
-                    .swapchainImageViews, commandPool, commandBuffer, pipelineLayout, recordData);
 
+            return TestCommandBufferFixture(fixture.device, fixture.swapchainData, fixture.renderPass, fixture
+                    .swapchainImageViews, commandPool, commandBuffer, pipelineLayout, graphicsPipeline, recordData, fixture);
         }
     }
 
@@ -178,12 +184,11 @@ void setCommandScissor(ref VkCommandBuffer commandBuffer, ref VkExtent2D swapcha
 @("Testing recordCommandBuffer")
 unittest
 {
-    // auto fixture = getCommandBufferFixture;
+    auto fixture = getCommandBufferFixture;
 
-    auto colorBlendAttachment = createColorBlendAttachment();
+    // auto colorBlendAttachment = createColorBlendAttachment();
 
-    VkPipeline graphicsPipeline;
-    // assert(recordCommandBuffer(fixture.commandRecordData, graphicsPipeline));
+    assert(recordCommandBuffer(fixture.commandRecordData, fixture.graphicsPipeline));
 
 }
 

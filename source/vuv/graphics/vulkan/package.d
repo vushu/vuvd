@@ -11,6 +11,10 @@ import vuv.graphics.vulkan.swapchain;
 import vuv.graphics.vulkan.imageview;
 import erupted.vulkan_lib_loader;
 import vuv.graphics.vulkan.commandbuffer;
+import vuv.graphics.vulkan.graphicspipelines.trianglepipeline;
+import vuv.graphics.vulkan.graphicspipelines.common;
+import vuv.graphics.vulkan.graphicspipelines.pipelinelayout;
+import vuv.graphics.vulkan.graphicspipelines.renderpass;
 
 import unit_threaded : Tags;
 
@@ -54,9 +58,31 @@ struct Vulkan
         _imageViews = createImageViews(_device, _swapchainImages, _swapchainData);
         assert(_imageViews.length > 0);
 
+        //Creating renderpass
+        auto colorAttachmentDescription = createAttachmentDescription(
+            _swapchainData.swapChainImageFormat);
+        auto colorAttachmentRefence = createColorAttachmentReference();
+        auto subPass = createSubpassDescription(colorAttachmentRefence);
+        auto renderPassCreateInfo = createRenderPassInfo(colorAttachmentDescription, subPass);
+
+        assert(createRenderPass(_device, renderPassCreateInfo, _renderPass));
+
         assert(createCommandPool(_device, _queueFamilyIndices.graphicsFamily.get, _commandPool));
 
         assert(createCommandBuffer(_device, _commandPool, _commandBuffer));
+
+        auto stages = createTriangleShaderStages(_device);
+
+        auto colorBlendAttachment = createColorBlendAttachment();
+
+        VkPipelineLayout pipelineLayout;
+
+        assert(createPipelineLayout(_device, pipelineLayout));
+
+        auto graphicsCreateInfos = createGraphicsPipelineCreateInfos(_device,
+            _swapchainData, colorBlendAttachment, _renderPass, _pipelineLayout, stages);
+
+        assert(createGraphicsPipeline(_device, graphicsCreateInfos, _graphicsPipeline));
 
         writeln("Successfully created vulkan context");
 
@@ -88,9 +114,12 @@ private:
     VkSwapchainKHR _swapchain;
     QueueFamilyIndices _queueFamilyIndices;
     SwapchainData _swapchainData;
+    VkRenderPass _renderPass;
     VkImage[] _swapchainImages;
     VkImageView[] _imageViews;
     VkCommandPool _commandPool;
     VkCommandBuffer _commandBuffer;
+    VkPipelineLayout _pipelineLayout;
+    VkPipeline _graphicsPipeline;
 
 }
