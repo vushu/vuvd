@@ -11,6 +11,7 @@ version (unittest)
     import vuv.graphics.vulkan.graphicspipelines.fileutils;
     import vuv.graphics.vulkan.graphicspipelines.renderpass;
     import vuv.graphics.vulkan.graphicspipelines.pipelinelayout;
+    import vuv.graphics.vulkan.graphicspipelines.trianglepipeline;
 }
 
 struct GraphicsPipelineCreateInfos
@@ -206,15 +207,18 @@ unittest
 
     assert(createRenderPass(fixture.device, renderPassCreateInfo, renderPass));
 
+
     assert(createPipelineLayout(fixture.device, pipelineLayout));
 
-    auto stages = createTriangleShaderStages(fixture.device);
+    ShadersModules shaderModules;
+    auto stages = createTriangleShaderStages(fixture.device, shaderModules);
 
     auto graphicsCreateInfo = createGraphicsPipelineCreateInfos(fixture.device,
         fixture.swapchainData, colorBlendAttachment, renderPass, pipelineLayout, stages);
 
     VkPipeline graphicsPipeline;
     assert(createGraphicsPipeline(fixture.device, graphicsCreateInfo, graphicsPipeline));
+    cleanupShaderModules(fixture.device, shaderModules);
     scope (exit)
     {
         vkDestroyRenderPass(fixture.device, renderPass, null);

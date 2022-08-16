@@ -27,7 +27,7 @@ struct Window
     SDL_Window* _sdlWindow;
 }
 
-@safe @nogc package nothrow:
+@safe @nogc nothrow:
 void destroyWindow(ref Window window) @trusted
 {
     debug writeln("Manual destroying window");

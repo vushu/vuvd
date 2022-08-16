@@ -1,6 +1,7 @@
 import std.stdio;
 import vuv.graphics;
 import vuv.graphics.vulkan;
+import vuv.graphics.window;
 
 import bindbc.sdl;
 
@@ -16,9 +17,50 @@ version (unittest)
 }
 else
 {
+
+    void mainLoop(ref Window window, ref Vulkan vulkan)
+    {
+        SDL_Event event;
+        bool running = true;
+        while (running)
+        {
+            while (SDL_PollEvent(&event))
+            {
+                switch (event.type)
+                {
+                case SDL_KEYDOWN:
+                    switch (event.key.keysym.sym)
+                    {
+                    case SDLK_ESCAPE:
+                        running = false;
+                        break;
+                    default:
+                        break;
+                    }
+
+                    break;
+                case SDL_KEYUP:
+                    break;
+                case SDL_QUIT:
+                    running = false;
+                    break;
+                default:
+                    break;
+
+                }
+            }
+            SDL_Delay(1 / 60);
+        }
+        destroy(vulkan);
+        destroyWindow(window);
+        SDL_Quit();
+
+    }
+
     void main()
     {
         auto win = Window("title", 600, 300);
         Vulkan vulkan = Vulkan("title", win._sdlWindow);
+        mainLoop(win, vulkan);
     }
 }

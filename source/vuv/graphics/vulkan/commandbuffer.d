@@ -57,7 +57,8 @@ version (unittest)
                     fixture.imageViewFixture.indices.graphicsFamily.get,
                     commandPool));
             assert(createCommandBuffer(fixture.device, commandPool, commandBuffer));
-            auto stages = createTriangleShaderStages(fixture.device);
+            ShadersModules shaderModules;
+            auto stages = createTriangleShaderStages(fixture.device, shaderModules);
 
             auto colorBlendAttachment = createColorBlendAttachment();
 
@@ -70,10 +71,12 @@ version (unittest)
 
             VkPipeline graphicsPipeline;
             assert(createGraphicsPipeline(fixture.device, graphicsCreateInfos, graphicsPipeline));
+            cleanupShaderModules(fixture.device, shaderModules);
 
             auto swapchainBuffers = createSwapchainFramebuffers(fixture.device, fixture.swapchainImageViews, fixture
                     .renderPass, fixture.swapchainData.swapChainExtent);
             swapchainBuffers.length.shouldBeGreaterThan(0);
+
             CommandRecordData recordData = CommandRecordData(commandBuffer, fixture.renderPass, fixture
                     .imageViewFixture.indices.graphicsFamily.get, swapchainBuffers, fixture
                     .swapchainData.swapChainExtent);

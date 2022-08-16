@@ -27,8 +27,8 @@ debug import unit_threaded;
 @("Test create Vulkan struct")
 unittest
 {
-    // auto sdlWindowFixture = getSDLWindowFixture();
-    // Vulkan vulkan = Vulkan("Test", sdlWindowFixture.window);
+    auto sdlWindowFixture = getSDLWindowFixture();
+    Vulkan vulkan = Vulkan("Test", sdlWindowFixture.window);
 }
 
 public:
@@ -72,13 +72,12 @@ struct Vulkan
 
         assert(createCommandBuffer(_device, _commandPool, _commandBuffer));
 
-        auto stages = createTriangleShaderStages(_device);
+        ShadersModules shaderModules;
+        auto stages = createTriangleShaderStages(_device, shaderModules);
 
         auto colorBlendAttachment = createColorBlendAttachment();
 
-        VkPipelineLayout pipelineLayout;
-
-        assert(createPipelineLayout(_device, pipelineLayout));
+        assert(createPipelineLayout(_device, _pipelineLayout));
 
         auto graphicsCreateInfos = createGraphicsPipelineCreateInfos(_device,
             _swapchainData, colorBlendAttachment, _renderPass, _pipelineLayout, stages);
@@ -87,16 +86,23 @@ struct Vulkan
         _swapchainFramebuffers = createSwapchainFramebuffers(_device, _imageViews, _renderPass, _swapchainData
                 .swapChainExtent);
 
+        writeln("Created GraphicsPipeline!");
+        cleanupShaderModules(_device, shaderModules);
+
         writeln("Successfully created vulkan context");
 
     }
 
     nothrow @nogc @trusted ~this()
     {
-        cleanupSwapchainFramebuffers(_swapchainFramebuffers, _device);
-        vkDestroyPipelineLayout(_device, _pipelineLayout, null);
-
         vkDestroyCommandPool(_device, _commandPool, null);
+
+        cleanupSwapchainFramebuffers(_swapchainFramebuffers, _device);
+
+        vkDestroyPipeline(_device, _graphicsPipeline, null);
+        vkDestroyPipelineLayout(_device, _pipelineLayout, null);
+        vkDestroyRenderPass(_device, _renderPass, null);
+
         _imageViews.cleanupImageView(_device);
         vkDestroySwapchainKHR(_device, _swapchain, null);
 
