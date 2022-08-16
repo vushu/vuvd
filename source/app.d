@@ -18,7 +18,7 @@ version (unittest)
 else
 {
 
-    void mainLoop(ref Window window, ref Vulkan vulkan)
+    void mainLoop(ref Window window)
     {
         SDL_Event event;
         bool running = true;
@@ -51,16 +51,18 @@ else
             }
             SDL_Delay(1 / 60);
         }
-        destroy(vulkan);
-        destroyWindow(window);
-        SDL_Quit();
-
     }
 
     void main()
     {
         auto win = Window("title", 600, 300);
         Vulkan vulkan = Vulkan("title", win._sdlWindow);
-        mainLoop(win, vulkan);
+        mainLoop(win);
+        destroy(vulkan);
+        destroyWindow(win);
+        SDL_Vulkan_UnloadLibrary();
+        SDL_Quit();
+
     }
+
 }

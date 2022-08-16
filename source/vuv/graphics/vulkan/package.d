@@ -16,6 +16,7 @@ import vuv.graphics.vulkan.graphicspipelines.common;
 import vuv.graphics.vulkan.graphicspipelines.pipelinelayout;
 import vuv.graphics.vulkan.graphicspipelines.renderpass;
 import vuv.graphics.vulkan.framebuffer;
+import vuv.graphics.vulkan.semaphore;
 
 import unit_threaded : Tags;
 
@@ -91,6 +92,8 @@ struct Vulkan
 
         writeln("Successfully created vulkan context");
 
+        _syncObjects = createSyncObjects(_device);
+
     }
 
     nothrow @nogc @trusted ~this()
@@ -103,9 +106,11 @@ struct Vulkan
         vkDestroyPipelineLayout(_device, _pipelineLayout, null);
         vkDestroyRenderPass(_device, _renderPass, null);
 
-        _imageViews.cleanupImageView(_device);
+        cleanupImageView(_imageViews, _device);
+
         vkDestroySwapchainKHR(_device, _swapchain, null);
 
+        cleanupSyncObjects(_syncObjects, _device);
         vkDestroyDevice(_device, null);
 
         debug destroyDebugUtilMessengerExt(_instance, _debugMessenger, null);
@@ -113,6 +118,8 @@ struct Vulkan
         vkDestroySurfaceKHR(_instance, _surface, null);
 
         vkDestroyInstance(_instance, null);
+        debug writeln("Destroyed vulkan");
+
     }
 
 private:
@@ -133,5 +140,18 @@ private:
     VkPipelineLayout _pipelineLayout;
     VkPipeline _graphicsPipeline;
     VkFramebuffer[] _swapchainFramebuffers;
+    SyncObjects _syncObjects;
 
+}
+
+void drawFrame(ref Vulkan vulkan)
+{
+    uint imageIndex;
+    vkAcquireNextImageKHR(vulkan._device, vulkan._swapchain, Uint64.max, vulkan
+            ._syncObjects.imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+
+    vkResetCommandBuffer(vulkan._commandBuffer, 0);
+
+    vkWaitForFences(vulkan._device, 1, &vulkan._syncObjects.inFlightFence, VK_TRUE, Uint64.max);
+    vkResetFences(vulkan._device, 1, &vulkan._syncObjects.inFlightFence);
 }
