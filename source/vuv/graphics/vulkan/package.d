@@ -17,6 +17,7 @@ import vuv.graphics.vulkan.graphicspipelines.pipelinelayout;
 import vuv.graphics.vulkan.graphicspipelines.renderpass;
 import vuv.graphics.vulkan.framebuffer;
 import vuv.graphics.vulkan.semaphore;
+import vuv.graphics.vulkan.queue;
 
 import unit_threaded : Tags;
 
@@ -37,7 +38,7 @@ import vuv.graphics.vulkan.instance;
 
 struct Vulkan
 {
-    this(string title, SDL_Window* sdlWindow)
+    this(string title, SDL_Window* sdlWindow, bool waitForImage = false)
     {
         assert(initializeVkInstance(_instance, _debugMessenger, getSDLVulkanExtensions(sdlWindow)));
 
@@ -65,7 +66,7 @@ struct Vulkan
             _swapchainData.swapChainImageFormat);
         auto colorAttachmentRefence = createColorAttachmentReference();
         auto subPass = createSubpassDescription(colorAttachmentRefence);
-        auto renderPassCreateInfo = createRenderPassInfo(colorAttachmentDescription, subPass);
+        auto renderPassCreateInfo = createRenderPassInfo(colorAttachmentDescription, subPass, waitForImage);
 
         assert(createRenderPass(_device, renderPassCreateInfo, _renderPass));
 
@@ -92,6 +93,9 @@ struct Vulkan
 
         writeln("Successfully created vulkan context");
 
+        _recordData = CommandRecordData(_commandBuffer, _renderPass,
+            _queueFamilyIndices.graphicsFamily.get, _swapchainFramebuffers, _swapchainData
+                .swapChainExtent);
         _syncObjects = createSyncObjects(_device);
 
     }
@@ -140,6 +144,7 @@ private:
     VkPipelineLayout _pipelineLayout;
     VkPipeline _graphicsPipeline;
     VkFramebuffer[] _swapchainFramebuffers;
+    CommandRecordData _recordData;
     SyncObjects _syncObjects;
 
 }
@@ -154,4 +159,13 @@ void drawFrame(ref Vulkan vulkan)
 
     vkWaitForFences(vulkan._device, 1, &vulkan._syncObjects.inFlightFence, VK_TRUE, Uint64.max);
     vkResetFences(vulkan._device, 1, &vulkan._syncObjects.inFlightFence);
+    recordCommandBuffer(vulkan._recordData, vulkan._graphicsPipeline);
+    submitCommandBuffer(vulkan._graphicsQueue, vulkan._presentQueue, vulkan._syncObjects, vulkan._commandBuffer, vulkan
+            ._swapchain, imageIndex);
+
+}
+
+void waitIdle(ref Vulkan vulkan)
+{
+    vkDeviceWaitIdle(vulkan._device);
 }

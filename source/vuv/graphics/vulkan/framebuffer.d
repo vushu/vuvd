@@ -19,6 +19,7 @@ version (unittest)
         VkDevice device;
         VkAttachmentDescription colorAttachmentDescription;
         VkAttachmentReference colorAttachmentRefence;
+        VkSwapchainKHR swapchain;
         SwapchainData swapchainData;
         VkRenderPass renderPass;
         VkImageView[] swapchainImageViews;
@@ -48,7 +49,7 @@ version (unittest)
             swapchainImageViews.length.shouldBeGreaterThan(0);
             assert(createRenderPass(fixture.device, createInfo, renderPass));
             return TestFramebufferFixture(fixture.device, colorAttachmentDescription,
-                colorAttachmentRefence, fixture.swapchainData, renderPass,
+                colorAttachmentRefence, fixture.swapchain, fixture.swapchainData, renderPass,
                 swapchainImageViews, fixture);
         }
     }
@@ -72,7 +73,7 @@ version (unittest)
             assert(createRenderPass(fixture.device, createInfo, renderPass));
             Unique!TestFramebufferFixture frameBufferFixture = new TestFramebufferFixture(fixture.device,
                 colorAttachmentDescription,
-                colorAttachmentRefence, fixture.swapchainData, renderPass,
+                colorAttachmentRefence, fixture.swapchain, fixture.swapchainData, renderPass,
                 swapchainImageViews, fixture);
             return frameBufferFixture.release;
         }
@@ -97,7 +98,9 @@ version (unittest)
             assert(createRenderPass(fixture.device, createInfo, renderPass));
             return RefCounted!TestFramebufferFixture(fixture.device,
                 colorAttachmentDescription,
-                colorAttachmentRefence, fixture.swapchainData, renderPass,
+                colorAttachmentRefence,
+                fixture.swapchain,
+                fixture.swapchainData, renderPass,
                 swapchainImageViews, fixture);
         }
     }

@@ -207,7 +207,6 @@ unittest
 
     assert(createRenderPass(fixture.device, renderPassCreateInfo, renderPass));
 
-
     assert(createPipelineLayout(fixture.device, pipelineLayout));
 
     ShadersModules shaderModules;
@@ -228,7 +227,8 @@ unittest
 
 }
 
-bool createGraphicsPipeline(ref VkDevice device, ref GraphicsPipelineCreateInfos createInfos, ref VkPipeline graphicsPipeline)
+bool createGraphicsPipeline(ref VkDevice device, ref GraphicsPipelineCreateInfos createInfos,
+    ref VkPipeline graphicsPipeline)
 {
     VkGraphicsPipelineCreateInfo pipelineCreateInfo;
     pipelineCreateInfo.sType = VkStructureType.VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;

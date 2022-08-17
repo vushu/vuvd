@@ -13,13 +13,12 @@ version (unittest)
         VkDevice device;
         ~this()
         {
-            //vkDestroyRenderPass(device, renderPass, null);
         }
     }
 }
 
 VkRenderPassCreateInfo createRenderPassInfo(
-        ref VkAttachmentDescription colorAttachment, ref VkSubpassDescription subpass)
+    ref VkAttachmentDescription colorAttachment, ref VkSubpassDescription subpass, bool waitForImage = false)
 {
     VkRenderPassCreateInfo renderPassInfo;
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -27,6 +26,19 @@ VkRenderPassCreateInfo createRenderPassInfo(
     renderPassInfo.pAttachments = &colorAttachment;
     renderPassInfo.subpassCount = 1;
     renderPassInfo.pSubpasses = &subpass;
+    if (waitForImage)
+    {
+        // waiting for image before starting
+        VkSubpassDependency subpassDependency;
+        subpassDependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+        subpassDependency.dstSubpass = 0;
+        subpassDependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        subpassDependency.srcAccessMask = 0;
+        subpassDependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        subpassDependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        renderPassInfo.dependencyCount = 1;
+        renderPassInfo.pDependencies = &subpassDependency;
+    }
     return renderPassInfo;
 }
 
@@ -71,7 +83,7 @@ unittest
     writelnUt("imageFormat", fixture.swapchainData.swapChainImageFormat);
 
     auto colorAttachmentDescription = createAttachmentDescription(
-            fixture.swapchainData.swapChainImageFormat);
+        fixture.swapchainData.swapChainImageFormat);
     auto colorAttachmentRefence = createColorAttachmentReference();
     auto subPass = createSubpassDescription(colorAttachmentRefence);
     auto createInfo = createRenderPassInfo(colorAttachmentDescription, subPass);
@@ -85,7 +97,7 @@ unittest
 }
 
 bool createRenderPass(ref VkDevice device,
-        ref VkRenderPassCreateInfo renderPassCreateInfo, ref VkRenderPass renderPass)
+    ref VkRenderPassCreateInfo renderPassCreateInfo, ref VkRenderPass renderPass)
 {
     return vkCreateRenderPass(device, &renderPassCreateInfo, null, &renderPass) == VkResult
         .VK_SUCCESS;
