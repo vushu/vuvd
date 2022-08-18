@@ -102,6 +102,7 @@ struct Vulkan
 
     nothrow @nogc @trusted ~this()
     {
+        cleanupSyncObjects(_syncObjects, _device);
         vkDestroyCommandPool(_device, _commandPool, null);
 
         cleanupSwapchainFramebuffers(_swapchainFramebuffers, _device);
@@ -114,7 +115,6 @@ struct Vulkan
 
         vkDestroySwapchainKHR(_device, _swapchain, null);
 
-        cleanupSyncObjects(_syncObjects, _device);
         vkDestroyDevice(_device, null);
 
         debug destroyDebugUtilMessengerExt(_instance, _debugMessenger, null);
@@ -151,16 +151,25 @@ private:
 
 void drawFrame(ref Vulkan vulkan)
 {
-    uint imageIndex;
-    vkAcquireNextImageKHR(vulkan._device, vulkan._swapchain, Uint64.max, vulkan
-            ._syncObjects.imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
 
-    vkResetCommandBuffer(vulkan._commandBuffer, 0);
-
-    vkWaitForFences(vulkan._device, 1, &vulkan._syncObjects.inFlightFence, VK_TRUE, Uint64.max);
+    vkWaitForFences(vulkan._device, 1, &vulkan._syncObjects.inFlightFence, VK_TRUE, uint.max);
     vkResetFences(vulkan._device, 1, &vulkan._syncObjects.inFlightFence);
-    recordCommandBuffer(vulkan._recordData, vulkan._graphicsPipeline);
-    submitCommandBuffer(vulkan._graphicsQueue, vulkan._presentQueue, vulkan._syncObjects, vulkan._commandBuffer, vulkan
+
+    uint imageIndex;
+    VkResult result = vkAcquireNextImageKHR(vulkan._device, vulkan._swapchain, size_t.max, vulkan
+            ._syncObjects.imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+    debug
+    {
+        if (result == VkResult.VK_ERROR_OUT_OF_DATE_KHR)
+        {
+            writeln("WHAT out of date!");
+        }
+    }
+    vkResetCommandBuffer(vulkan._recordData.commandBuffer, 0);
+
+    recordCommandBuffer(vulkan._recordData, vulkan._graphicsPipeline, imageIndex);
+    submitCommandBuffer(vulkan._graphicsQueue, vulkan._presentQueue, vulkan._syncObjects, vulkan
+            ._recordData.commandBuffer, vulkan
             ._swapchain, imageIndex);
 
 }

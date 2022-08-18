@@ -4,6 +4,7 @@ import vuv.graphics.vulkan.physicaldevice;
 import std.typecons : Nullable, RefCounted, Unique;
 import vuv.graphics.vulkan.semaphore;
 import vuv.graphics.vulkan.queue;
+import std.stdio : writeln;
 
 struct CommandRecordData
 {
@@ -199,11 +200,7 @@ void setCommandScissor(ref VkCommandBuffer commandBuffer, ref VkExtent2D swapcha
 unittest
 {
     auto fixture = getCommandBufferFixture;
-
-    // auto colorBlendAttachment = createColorBlendAttachment();
-
     assert(recordCommandBuffer(fixture.commandRecordData, fixture.graphicsPipeline));
-
 }
 
 @("Testing submitCommandBuffer")
@@ -221,18 +218,18 @@ unittest
     vkWaitForFences(fixture.device, 1, &syncObjects.inFlightFence, VK_TRUE, uint64_t.max);
     vkResetFences(fixture.device, 1, &syncObjects.inFlightFence);
 
-    assert(recordCommandBuffer(fixture.commandRecordData, fixture.graphicsPipeline));
+    assert(recordCommandBuffer(fixture.commandRecordData, fixture.graphicsPipeline, imageIndex));
     assert(submitCommandBuffer(fixture.graphicsQueue, fixture.presentQueue, syncObjects, fixture.commandBuffer, fixture
             .swapchain, imageIndex));
 
 }
 
-bool recordCommandBuffer(ref CommandRecordData commandRecordData, ref VkPipeline graphicsPipeline)
+bool recordCommandBuffer(ref CommandRecordData commandRecordData, ref VkPipeline graphicsPipeline, uint imageIndex)
 {
     assert(createCommandBufferBegin(commandRecordData.commandBuffer));
 
     createRenderPassBegin(commandRecordData.commandBuffer,
-        commandRecordData.renderPass, commandRecordData.imageIndex, commandRecordData
+        commandRecordData.renderPass, imageIndex, commandRecordData
             .swapchainFramebuffers, commandRecordData.swapchainExtent);
 
     vkCmdBindPipeline(commandRecordData.commandBuffer,
@@ -248,14 +245,18 @@ bool recordCommandBuffer(ref CommandRecordData commandRecordData, ref VkPipeline
     return vkEndCommandBuffer(commandRecordData.commandBuffer) == VkResult.VK_SUCCESS;
 }
 
-bool submitCommandBuffer(ref VkQueue graphicsQueue, ref VkQueue presentQueue, ref SyncObjects syncObjects, ref VkCommandBuffer commandBuffer, ref VkSwapchainKHR swapchain, uint imageIndex)
+bool submitCommandBuffer(ref VkQueue graphicsQueue, ref VkQueue presentQueue, ref SyncObjects syncObjects, ref VkCommandBuffer commandBuffer,
+    ref VkSwapchainKHR swapchain, uint32_t imageIndex)
 {
     VkSubmitInfo submitCreateInfo;
     submitCreateInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    VkSemaphore[1] waitSemaphores;
-    waitSemaphores[0] = syncObjects.imageAvailableSemaphore;
-    VkPipelineStageFlags[1] waitStages;
-    waitStages[0] = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+
+    VkSemaphore[] waitSemaphores;
+    waitSemaphores ~= syncObjects.imageAvailableSemaphore;
+
+    VkPipelineStageFlags[] waitStages;
+    waitStages ~= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+
     submitCreateInfo.waitSemaphoreCount = 1;
     submitCreateInfo.pWaitSemaphores = waitSemaphores.ptr;
     submitCreateInfo.pWaitDstStageMask = waitStages.ptr;

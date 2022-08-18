@@ -2,9 +2,11 @@ module vuv.graphics.vulkan.graphicspipelines.renderpass;
 import erupted;
 import unit_threaded;
 
+debug import std.stdio;
+
 version (unittest)
 {
-    import unit_threaded;
+    import unit_threaded : should;
     import vuv.graphics.vulkan.imageview : getImageViewFixture;
     import vuv.graphics.vulkan.graphicspipelines.fileutils;
 
@@ -29,15 +31,20 @@ VkRenderPassCreateInfo createRenderPassInfo(
     if (waitForImage)
     {
         // waiting for image before starting
+        VkSubpassDependency[] subpassDependencies;
         VkSubpassDependency subpassDependency;
+
         subpassDependency.srcSubpass = VK_SUBPASS_EXTERNAL;
         subpassDependency.dstSubpass = 0;
+
         subpassDependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
         subpassDependency.srcAccessMask = 0;
+
         subpassDependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
         subpassDependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        subpassDependencies ~= subpassDependency;
         renderPassInfo.dependencyCount = 1;
-        renderPassInfo.pDependencies = &subpassDependency;
+        renderPassInfo.pDependencies = subpassDependencies.ptr;
     }
     return renderPassInfo;
 }
@@ -86,9 +93,9 @@ unittest
         fixture.swapchainData.swapChainImageFormat);
     auto colorAttachmentRefence = createColorAttachmentReference();
     auto subPass = createSubpassDescription(colorAttachmentRefence);
-    auto createInfo = createRenderPassInfo(colorAttachmentDescription, subPass);
+    auto createInfo = createRenderPassInfo(colorAttachmentDescription, subPass, false);
     VkRenderPass renderPass;
-    assert(createRenderPass(fixture.device, createInfo, renderPass));
+    createRenderPass(fixture.device, createInfo, renderPass).shouldBeTrue;
     scope (exit)
     {
         vkDestroyRenderPass(fixture.device, renderPass, null);
