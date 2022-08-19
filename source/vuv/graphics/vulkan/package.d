@@ -178,9 +178,10 @@ void drawFrame(ref Vulkan vulkan)
     {
 
         VkSemaphore[] signalSemaphores;
+        signalSemaphores.reserve(0);
         signalSemaphores ~= vulkan._syncObjects.signalSemaphores[vulkan._currentFrame];
-
         present(vulkan._presentQueue, signalSemaphores, vulkan._swapchain, imageIndex);
+
         vulkan._currentFrame = (vulkan._currentFrame + 1) % getMaxFramesInFlight;
     }
 
