@@ -226,7 +226,7 @@ unittest
 
     assert(recordCommandBuffer(fixture.commandRecordData, fixture.graphicsPipeline, imageIndex, 0));
     assert(submitCommandBuffer(fixture.graphicsQueue, fixture.presentQueue, syncObjects, fixture.commandBuffers[0], fixture
-            .swapchain, imageIndex, 0));
+            .swapchain, 0));
 
 }
 

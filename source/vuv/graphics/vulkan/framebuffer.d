@@ -127,8 +127,7 @@ VkFramebuffer[] createSwapchainFramebuffers(ref VkDevice device,
     swapchainFramebuffers.reserve(imageViews.length);
     foreach (imageView; imageViews)
     {
-        VkImageView[] attachments;
-        attachments ~= imageView;
+        VkImageView[1] attachments = imageView;
         VkFramebufferCreateInfo framebufferCreateInfo;
         framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
         framebufferCreateInfo.renderPass = renderPass;

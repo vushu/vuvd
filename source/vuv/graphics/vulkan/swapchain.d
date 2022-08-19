@@ -206,14 +206,6 @@ VkPresentModeKHR chooseSwapPresentMode(ref VkPresentModeKHR[] availablePresentMo
     int width, height;
     SDL_GetWindowSize(sdlWindow, &width, &height);
     auto actualExtent = VkExtent2D(width, height);
-    debug
-    {
-        import unit_threaded;
-
-        writelnUt("sdlWidth: ", width);
-        writelnUt("sdlHeight: ", height);
-        writelnUt("minHeight: ", capabilities.minImageExtent.height);
-    }
 
     actualExtent.width = clamp(actualExtent.width,
         capabilities.minImageExtent.width, capabilities.maxImageExtent.width);

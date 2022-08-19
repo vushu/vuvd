@@ -41,9 +41,10 @@ struct Vulkan
 {
     this(string title, SDL_Window* sdlWindow, bool waitForImage = false)
     {
+        _sdlWindow = sdlWindow;
         assert(initializeVkInstance(_instance, _debugMessenger, getSDLVulkanExtensions(sdlWindow)));
 
-        assert(createSurface(sdlWindow, _instance, _surface));
+        assert(createSurface(_sdlWindow, _instance, _surface));
 
         assert(getPhysicalDevice(_instance, _physicalDevice, _surface, _queueFamilyIndices));
 
@@ -102,18 +103,19 @@ struct Vulkan
 
     void cleanup()
     {
-        cleanupSyncObjects(_syncObjects, _device);
+        cleanupSwapchain();
         vkDestroyCommandPool(_device, _commandPool, null);
 
-        cleanupSwapchainFramebuffers(_swapchainFramebuffers, _device);
+        // cleanupSwapchainFramebuffers(_swapchainFramebuffers, _device);
 
         vkDestroyPipeline(_device, _graphicsPipeline, null);
         vkDestroyPipelineLayout(_device, _pipelineLayout, null);
         vkDestroyRenderPass(_device, _renderPass, null);
 
-        cleanupImageView(_imageViews, _device);
+        cleanupSyncObjects(_syncObjects, _device);
+        // cleanupImageView(_imageViews, _device);
 
-        vkDestroySwapchainKHR(_device, _swapchain, null);
+        // vkDestroySwapchainKHR(_device, _swapchain, null);
 
         vkDestroyDevice(_device, null);
 
@@ -126,7 +128,36 @@ struct Vulkan
         debug writeln("Destroyed vulkan");
     }
 
+    void recreateSwapchain()
+    {
+
+        vkDeviceWaitIdle(_device);
+
+        cleanupSwapchain();
+
+        assert(createSwapchain(_device, _physicalDevice, _surface, _sdlWindow, _swapchain, _swapchainData,
+                _queueFamilyIndices.graphicsFamily.get, _queueFamilyIndices.presentFamily.get));
+        _swapchainImages = getSwapchainImages(_device, _swapchain);
+        _imageViews = createImageViews(_device, _swapchainImages, _swapchainData);
+        _swapchainFramebuffers = createSwapchainFramebuffers(_device, _imageViews, _renderPass, _swapchainData
+                .swapChainExtent);
+
+        assert(_imageViews.length > 0);
+
+        _recordData = CommandRecordData(_commandBuffers, _renderPass, _swapchainFramebuffers, _swapchainData
+                .swapChainExtent);
+
+    }
+
+    void cleanupSwapchain()
+    {
+        cleanupSwapchainFramebuffers(_swapchainFramebuffers, _device);
+        cleanupImageView(_imageViews, _device);
+        vkDestroySwapchainKHR(_device, _swapchain, null);
+    }
+
 private:
+    SDL_Window* _sdlWindow;
     VkInstance _instance;
     VkPhysicalDevice _physicalDevice;
     VkDebugUtilsMessengerEXT _debugMessenger;
@@ -146,27 +177,34 @@ private:
     VkFramebuffer[] _swapchainFramebuffers;
     CommandRecordData _recordData;
     SyncObjects _syncObjects;
+    bool _frameBufferResized = false;
     uint _currentFrame = 0;
 
 }
 
 void drawFrame(ref Vulkan vulkan)
 {
-
     vkWaitForFences(vulkan._device, 1, &vulkan._syncObjects.inFlightFences[vulkan._currentFrame], VK_TRUE, uint
             .max);
-    vkResetFences(vulkan._device, 1, &vulkan._syncObjects.inFlightFences[vulkan._currentFrame]);
-
     uint imageIndex;
-    VkResult result = vkAcquireNextImageKHR(vulkan._device, vulkan._swapchain, size_t.max, vulkan
+
+    VkResult result = vkAcquireNextImageKHR(
+        vulkan._device, vulkan._swapchain, size_t.max, vulkan
             ._syncObjects.waitSemaphores[vulkan._currentFrame], VK_NULL_HANDLE, &imageIndex);
-    debug
+
+    if (result == VkResult.VK_ERROR_OUT_OF_DATE_KHR)
     {
-        if (result == VkResult.VK_ERROR_OUT_OF_DATE_KHR)
-        {
-            writeln("WHAT out of date!");
-        }
+        writeln("WHAT out of date! recreate swapchain!");
+        vulkan.recreateSwapchain;
+        return;
     }
+    else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
+    {
+        writeln("Failed to vkAcquireNextImageKHR");
+        return;
+    }
+    vkResetFences(vulkan._device, 1, &vulkan._syncObjects
+            .inFlightFences[vulkan._currentFrame]);
 
     vkResetCommandBuffer(vulkan._recordData.commandBuffers[vulkan._currentFrame], 0);
 
@@ -179,15 +217,54 @@ void drawFrame(ref Vulkan vulkan)
 
         VkSemaphore[] signalSemaphores;
         signalSemaphores.reserve(0);
-        signalSemaphores ~= vulkan._syncObjects.signalSemaphores[vulkan._currentFrame];
-        present(vulkan._presentQueue, signalSemaphores, vulkan._swapchain, imageIndex);
+        signalSemaphores ~= vulkan
+            ._syncObjects.signalSemaphores[vulkan._currentFrame];
+        RecreateSwapchain shouldRecreate = present(vulkan._presentQueue, signalSemaphores, vulkan
+                ._swapchain, imageIndex, vulkan._frameBufferResized);
 
-        vulkan._currentFrame = (vulkan._currentFrame + 1) % getMaxFramesInFlight;
+        switch (shouldRecreate)
+        {
+        case RecreateSwapchain.yes:
+            debug writeln("Ok we need to recreate swapchain!");
+            vulkan.recreateSwapchain;
+            vulkan._frameBufferResized = false;
+            break;
+        case RecreateSwapchain.no:
+            // debug writeln("We do not need to recreate swapchain");
+            break;
+        case RecreateSwapchain.error:
+            debug writeln("Failed to present");
+            break;
+        default:
+            debug writeln("Unknown case");
+            break;
+        }
+        vulkan._currentFrame = (
+            vulkan._currentFrame + 1) % getMaxFramesInFlight;
     }
-
+    else
+    {
+        debug writeln("Failed to submit ");
+    }
 }
 
 void waitIdle(ref Vulkan vulkan)
 {
     vkDeviceWaitIdle(vulkan._device);
+}
+
+void resizeCallback(ref Vulkan vulkan, int width, int height)
+{
+    debug writeln("resizing vulkan callback");
+    debug writeln("resizing vulkan callback");
+    debug writeln("resizing vulkan callback");
+    debug writeln("resizing vulkan callback");
+    debug writeln("width ", width);
+    debug writeln("height ", height);
+    // vulkan.recreateSwapchain();
+    if (width == 0 || height == 0)
+    {
+        return;
+    }
+    vulkan._frameBufferResized = true;
 }

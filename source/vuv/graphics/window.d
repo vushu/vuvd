@@ -22,16 +22,38 @@ struct Window
     string title;
     int width;
     int height;
-
-// package:
+    // package:
     SDL_Window* _sdlWindow;
 }
 
-@safe @nogc nothrow:
-void destroyWindow(ref Window window) @trusted
+void destroyWindow(ref Window window)
 {
-    debug writeln("Manual destroying window");
     SDL_DestroyWindow(window._sdlWindow);
+}
+
+void handleEvent(ref Window window, ref SDL_Event event, void delegate(int width, int height) resizeCallback)
+{
+    if (event.type != SDL_EventType.SDL_WINDOWEVENT)
+        return;
+    switch (event.window.event)
+    {
+    case SDL_WindowEventID.SDL_WINDOWEVENT_SIZE_CHANGED:
+        window.width = event.window.data1;
+        window.height = event.window.data2;
+        // SDL_SetWindowSize(window._sdlWindow, window.width, window.height);
+        // resizeCallback(event.window.data1, event.window.data2);
+        resizeCallback(event.window.data1, event.window.data2);
+        break;
+    case SDL_WindowEventID.SDL_WINDOWEVENT_EXPOSED:
+        // resizeCallback(event.window.data1, event.window.data2);
+        // debug writeln("hererere");
+        // resizeCallback(event.window.data1, event.window.data2);
+        break;
+
+    default:
+        break;
+    }
+
 }
 
 @safe @nogc private nothrow:
