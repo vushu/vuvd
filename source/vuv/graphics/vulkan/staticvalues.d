@@ -1,6 +1,8 @@
 module vuv.graphics.vulkan.staticvalues;
 import erupted;
 
+static const int getMaxFramesInFlight = 2;
+
 static const(char)*[] getRequiredValidationLayers = [
     "VK_LAYER_KHRONOS_validation"
 ];

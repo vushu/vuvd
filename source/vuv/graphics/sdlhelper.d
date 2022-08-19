@@ -104,7 +104,6 @@ SDL_Window* createWindow(string title, int width, int height) nothrow @trusted @
 
 SDL_Window* createSDLWindow(string title, int width, int height) nothrow @nogc @trusted
 {
-
     if (loadSDLLibrary() && initializeSDL() && initializeSDLImage())
     {
         if (SDL_Window* sdlWindow = createWindow(title, width, height))

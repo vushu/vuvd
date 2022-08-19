@@ -8,7 +8,7 @@ import std.stdio : writeln;
 
 struct CommandRecordData
 {
-    VkCommandBuffer commandBuffer;
+    VkCommandBuffer[] commandBuffers;
     VkRenderPass renderPass;
     VkFramebuffer[] swapchainFramebuffers;
     VkExtent2D swapchainExtent;
@@ -27,6 +27,8 @@ version (unittest)
     import vuv.graphics.vulkan.framebuffer;
     import vuv.graphics.vulkan.graphicspipelines.pipelinelayout;
     import vuv.graphics.vulkan.imageview;
+    import vuv.graphics.vulkan.staticvalues;
+
     import unit_threaded;
 
     struct TestCommandBufferFixture
@@ -39,7 +41,7 @@ version (unittest)
         VkRenderPass renderPass;
         VkImageView[] swapchainImageViews;
         VkCommandPool commandPool;
-        VkCommandBuffer commandBuffer;
+        VkCommandBuffer[] commandBuffers;
         VkPipelineLayout pipelineLayout;
         VkPipeline graphicsPipeline;
         VkQueue graphicsQueue;
@@ -59,11 +61,11 @@ version (unittest)
         {
             auto fixture = getRefcountedFramebufferFixture();
             VkCommandPool commandPool;
-            VkCommandBuffer commandBuffer;
+            VkCommandBuffer[] commandBuffers;
             assert(createCommandPool(fixture.device,
                     fixture.imageViewFixture.indices.graphicsFamily.get,
                     commandPool));
-            assert(createCommandBuffer(fixture.device, commandPool, commandBuffer));
+            assert(createCommandBuffer(fixture.device, commandPool, getMaxFramesInFlight, commandBuffers));
             ShadersModules shaderModules;
             auto stages = createTriangleShaderStages(fixture.device, shaderModules);
 
@@ -84,7 +86,7 @@ version (unittest)
                     .renderPass, fixture.swapchainData.swapChainExtent);
             swapchainBuffers.length.shouldBeGreaterThan(0);
 
-            CommandRecordData recordData = CommandRecordData(commandBuffer, fixture.renderPass, swapchainBuffers, fixture
+            CommandRecordData recordData = CommandRecordData(commandBuffers, fixture.renderPass, swapchainBuffers, fixture
                     .swapchainData.swapChainExtent);
 
             auto graphicsQueue = getQueue(fixture.device, fixture
@@ -93,7 +95,7 @@ version (unittest)
             auto presentQueue = getQueue(fixture.device, fixture
                     .imageViewFixture.indices.presentFamily.get);
             return TestCommandBufferFixture(fixture.device, fixture.swapchain, fixture.swapchainData, fixture.renderPass,
-                fixture.swapchainImageViews, commandPool, commandBuffer, pipelineLayout,
+                fixture.swapchainImageViews, commandPool, commandBuffers, pipelineLayout,
                 graphicsPipeline, graphicsQueue, presentQueue, recordData, fixture);
         }
     }
@@ -112,8 +114,8 @@ unittest
         vkDestroyCommandPool(fixture.device, commandPool, null);
     }
 
-    VkCommandBuffer commandBuffer;
-    assert(createCommandBuffer(fixture.device, commandPool, commandBuffer));
+    VkCommandBuffer[] commandBuffers;
+    assert(createCommandBuffer(fixture.device, commandPool, getMaxFramesInFlight, commandBuffers));
 }
 
 bool createCommandPool(ref VkDevice device, uint graphicsFamilyIndex, out VkCommandPool commandPool)
@@ -127,15 +129,16 @@ bool createCommandPool(ref VkDevice device, uint graphicsFamilyIndex, out VkComm
         .VK_SUCCESS;
 }
 
-bool createCommandBuffer(ref VkDevice device, ref VkCommandPool commandPool,
-    out VkCommandBuffer commandBuffer)
+bool createCommandBuffer(ref VkDevice device, ref VkCommandPool commandPool, uint maxFramesInFlight,
+    out VkCommandBuffer[] commandBuffers)
 {
+    commandBuffers.length = maxFramesInFlight;
     VkCommandBufferAllocateInfo allocCreateInfo;
     allocCreateInfo.sType = VkStructureType.VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocCreateInfo.commandPool = commandPool;
     allocCreateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocCreateInfo.commandBufferCount = 1;
-    return vkAllocateCommandBuffers(device, &allocCreateInfo, &commandBuffer) == VK_SUCCESS;
+    allocCreateInfo.commandBufferCount = maxFramesInFlight;
+    return vkAllocateCommandBuffers(device, &allocCreateInfo, commandBuffers.ptr) == VK_SUCCESS;
 
 }
 
@@ -200,11 +203,11 @@ unittest
 {
     auto fixture = getCommandBufferFixture;
 
-    auto syncObjects = createSyncObjects(fixture.device);
+    auto syncObjects = createSyncObjects(fixture.device, getMaxFramesInFlight);
     uint imageIndex;
     getNextImage(fixture.device, fixture.swapchain, syncObjects.waitSemaphores[0], imageIndex);
 
-    assert(recordCommandBuffer(fixture.commandRecordData, fixture.graphicsPipeline, imageIndex));
+    assert(recordCommandBuffer(fixture.commandRecordData, fixture.graphicsPipeline, imageIndex, 0));
 }
 
 @("Testing submitCommandBuffer")
@@ -212,45 +215,49 @@ unittest
 {
     auto fixture = getCommandBufferFixture;
 
-    auto syncObjects = createSyncObjects(fixture.device);
+    auto syncObjects = createSyncObjects(fixture.device, getMaxFramesInFlight);
     uint imageIndex;
     getNextImage(fixture.device, fixture.swapchain, syncObjects.waitSemaphores[0], imageIndex);
 
-    vkResetCommandBuffer(fixture.commandBuffer, 0);
+    vkResetCommandBuffer(fixture.commandBuffers[0], 0);
 
-    vkWaitForFences(fixture.device, 1, &syncObjects.inFlightFence, VK_TRUE, uint64_t.max);
-    vkResetFences(fixture.device, 1, &syncObjects.inFlightFence);
+    vkWaitForFences(fixture.device, 1, &syncObjects.inFlightFences[0], VK_TRUE, uint64_t.max);
+    vkResetFences(fixture.device, 1, &syncObjects.inFlightFences[0]);
 
-    assert(recordCommandBuffer(fixture.commandRecordData, fixture.graphicsPipeline, imageIndex));
-    assert(submitCommandBuffer(fixture.graphicsQueue, fixture.presentQueue, syncObjects, fixture.commandBuffer, fixture
-            .swapchain, imageIndex));
+    assert(recordCommandBuffer(fixture.commandRecordData, fixture.graphicsPipeline, imageIndex, 0));
+    assert(submitCommandBuffer(fixture.graphicsQueue, fixture.presentQueue, syncObjects, fixture.commandBuffers[0], fixture
+            .swapchain, imageIndex, 0));
 
 }
 
-bool recordCommandBuffer(ref CommandRecordData commandRecordData, ref VkPipeline graphicsPipeline, uint imageIndex)
+bool recordCommandBuffer(ref CommandRecordData commandRecordData, ref VkPipeline graphicsPipeline, uint imageIndex, uint currentFrame)
 {
-    assert(createCommandBufferBegin(commandRecordData.commandBuffer));
+    assert(createCommandBufferBegin(commandRecordData.commandBuffers[currentFrame]));
 
-    createRenderPassBegin(commandRecordData.commandBuffer,
+    createRenderPassBegin(commandRecordData.commandBuffers[currentFrame],
         commandRecordData.renderPass, imageIndex, commandRecordData
             .swapchainFramebuffers, commandRecordData.swapchainExtent);
 
-    vkCmdBindPipeline(commandRecordData.commandBuffer,
+    vkCmdBindPipeline(commandRecordData.commandBuffers[currentFrame],
         VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
-    setCommandViewport(commandRecordData.commandBuffer, commandRecordData.swapchainExtent);
+    setCommandViewport(commandRecordData.commandBuffers[currentFrame], commandRecordData
+            .swapchainExtent);
 
-    setCommandScissor(commandRecordData.commandBuffer, commandRecordData.swapchainExtent);
+    setCommandScissor(commandRecordData.commandBuffers[currentFrame], commandRecordData
+            .swapchainExtent);
 
-    vkCmdDraw(commandRecordData.commandBuffer, 3, 1, 0, 0);
+    vkCmdDraw(commandRecordData.commandBuffers[currentFrame], 3, 1, 0, 0);
 
-    vkCmdEndRenderPass(commandRecordData.commandBuffer);
+    vkCmdEndRenderPass(commandRecordData.commandBuffers[currentFrame]);
 
-    return vkEndCommandBuffer(commandRecordData.commandBuffer) == VkResult.VK_SUCCESS;
+    return vkEndCommandBuffer(commandRecordData.commandBuffers[currentFrame]) == VkResult
+        .VK_SUCCESS;
 }
 
 bool submitCommandBuffer(ref VkQueue graphicsQueue, ref VkQueue presentQueue, ref SyncObjects syncObjects, ref VkCommandBuffer commandBuffer,
-    ref VkSwapchainKHR swapchain, uint32_t imageIndex)
+    ref VkSwapchainKHR swapchain, uint currentFrame)
 {
+    VkSemaphore[1] waitSemaphores = syncObjects.waitSemaphores[currentFrame];
     VkSubmitInfo submitCreateInfo;
     submitCreateInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
@@ -258,15 +265,16 @@ bool submitCommandBuffer(ref VkQueue graphicsQueue, ref VkQueue presentQueue, re
     waitStages ~= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
     submitCreateInfo.waitSemaphoreCount = 1;
-    submitCreateInfo.pWaitSemaphores = syncObjects.waitSemaphores.ptr;
+    submitCreateInfo.pWaitSemaphores = waitSemaphores.ptr;
     submitCreateInfo.pWaitDstStageMask = waitStages.ptr;
     submitCreateInfo.commandBufferCount = 1;
     submitCreateInfo.pCommandBuffers = &commandBuffer;
 
+    VkSemaphore[1] signalSemaphores = syncObjects.signalSemaphores[currentFrame];
     submitCreateInfo.signalSemaphoreCount = 1;
-    submitCreateInfo.pSignalSemaphores = syncObjects.signalSemaphores.ptr;
+    submitCreateInfo.pSignalSemaphores = signalSemaphores.ptr;
 
-    return vkQueueSubmit(graphicsQueue, 1, &submitCreateInfo, syncObjects.inFlightFence) == VkResult
+    return vkQueueSubmit(graphicsQueue, 1, &submitCreateInfo, syncObjects
+            .inFlightFences[currentFrame]) == VkResult
         .VK_SUCCESS;
-
 }

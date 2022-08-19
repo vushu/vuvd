@@ -118,7 +118,9 @@ VkImageView[] createImageViews(ref VkDevice device, ref VkImage[] swapchainImage
         swapchainImageViews ~= imageView;
 
     }
+
     debug writeln("SwapchainImageViews Length: ", swapchainImageViews.length);
+
     return swapchainImageViews;
 
 }

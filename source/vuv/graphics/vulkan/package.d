@@ -31,6 +31,7 @@ unittest
 {
     auto sdlWindowFixture = getSDLWindowFixture();
     Vulkan vulkan = Vulkan("Test", sdlWindowFixture.window);
+    vulkan.cleanup();
 }
 
 public:
@@ -72,7 +73,7 @@ struct Vulkan
 
         assert(createCommandPool(_device, _queueFamilyIndices.graphicsFamily.get, _commandPool));
 
-        assert(createCommandBuffer(_device, _commandPool, _commandBuffer));
+        assert(createCommandBuffer(_device, _commandPool, getMaxFramesInFlight, _commandBuffers));
 
         ShadersModules shaderModules;
         auto stages = createTriangleShaderStages(_device, shaderModules);
@@ -93,9 +94,9 @@ struct Vulkan
 
         writeln("Successfully created vulkan context");
 
-        _recordData = CommandRecordData(_commandBuffer, _renderPass, _swapchainFramebuffers, _swapchainData
+        _recordData = CommandRecordData(_commandBuffers, _renderPass, _swapchainFramebuffers, _swapchainData
                 .swapChainExtent);
-        _syncObjects = createSyncObjects(_device);
+        _syncObjects = createSyncObjects(_device, getMaxFramesInFlight);
 
     }
 
@@ -121,6 +122,7 @@ struct Vulkan
         vkDestroySurfaceKHR(_instance, _surface, null);
 
         vkDestroyInstance(_instance, null);
+
         debug writeln("Destroyed vulkan");
     }
 
@@ -138,24 +140,26 @@ private:
     VkImage[] _swapchainImages;
     VkImageView[] _imageViews;
     VkCommandPool _commandPool;
-    VkCommandBuffer _commandBuffer;
+    VkCommandBuffer[] _commandBuffers;
     VkPipelineLayout _pipelineLayout;
     VkPipeline _graphicsPipeline;
     VkFramebuffer[] _swapchainFramebuffers;
     CommandRecordData _recordData;
     SyncObjects _syncObjects;
+    uint _currentFrame = 0;
 
 }
 
 void drawFrame(ref Vulkan vulkan)
 {
 
-    vkWaitForFences(vulkan._device, 1, &vulkan._syncObjects.inFlightFence, VK_TRUE, uint.max);
-    vkResetFences(vulkan._device, 1, &vulkan._syncObjects.inFlightFence);
+    vkWaitForFences(vulkan._device, 1, &vulkan._syncObjects.inFlightFences[vulkan._currentFrame], VK_TRUE, uint
+            .max);
+    vkResetFences(vulkan._device, 1, &vulkan._syncObjects.inFlightFences[vulkan._currentFrame]);
 
     uint imageIndex;
     VkResult result = vkAcquireNextImageKHR(vulkan._device, vulkan._swapchain, size_t.max, vulkan
-            ._syncObjects.waitSemaphores[0], VK_NULL_HANDLE, &imageIndex);
+            ._syncObjects.waitSemaphores[vulkan._currentFrame], VK_NULL_HANDLE, &imageIndex);
     debug
     {
         if (result == VkResult.VK_ERROR_OUT_OF_DATE_KHR)
@@ -163,15 +167,21 @@ void drawFrame(ref Vulkan vulkan)
             writeln("WHAT out of date!");
         }
     }
-    vkResetCommandBuffer(vulkan._recordData.commandBuffer, 0);
 
-    recordCommandBuffer(vulkan._recordData, vulkan._graphicsPipeline, imageIndex);
+    vkResetCommandBuffer(vulkan._recordData.commandBuffers[vulkan._currentFrame], 0);
+
+    recordCommandBuffer(vulkan._recordData, vulkan._graphicsPipeline, imageIndex, vulkan
+            ._currentFrame);
     if (submitCommandBuffer(vulkan._graphicsQueue, vulkan._presentQueue, vulkan._syncObjects, vulkan
-            ._recordData.commandBuffer, vulkan
-            ._swapchain, imageIndex))
+            ._recordData.commandBuffers[vulkan._currentFrame], vulkan
+            ._swapchain, vulkan._currentFrame))
     {
 
-        present(vulkan._presentQueue, vulkan._syncObjects.signalSemaphores, vulkan._swapchain, imageIndex);
+        VkSemaphore[] signalSemaphores;
+        signalSemaphores ~= vulkan._syncObjects.signalSemaphores[vulkan._currentFrame];
+
+        present(vulkan._presentQueue, signalSemaphores, vulkan._swapchain, imageIndex);
+        vulkan._currentFrame = (vulkan._currentFrame + 1) % getMaxFramesInFlight;
     }
 
 }
