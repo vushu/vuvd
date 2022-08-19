@@ -99,7 +99,7 @@ struct Vulkan
 
     }
 
-    nothrow @nogc @trusted ~this()
+    void cleanup()
     {
         cleanupSyncObjects(_syncObjects, _device);
         vkDestroyCommandPool(_device, _commandPool, null);
@@ -122,7 +122,6 @@ struct Vulkan
 
         vkDestroyInstance(_instance, null);
         debug writeln("Destroyed vulkan");
-
     }
 
 private:

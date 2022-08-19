@@ -2,12 +2,12 @@ import std.stdio;
 import vuv.graphics;
 import vuv.graphics.vulkan;
 import vuv.graphics.window;
+import std.typecons : Unique;
 
 import bindbc.sdl;
 
 version (unittest)
 {
-    // mixin runTestsMain!("vuv.graphics.vulkan", "vuv.graphics.vulkan.instance");
     mixin runTestsMain!("vuv.graphics.renderer", "vuv.graphics.vulkan.instance",
         "vuv.graphics.sdlhelper", "vuv.graphics.vulkan.physicaldevice",
         "vuv.graphics.vulkan.logicaldevice",
@@ -52,7 +52,7 @@ else
 
             drawFrame(vulkan);
 
-            SDL_Delay(1 / 60);
+            // SDL_Delay(1 / 60);
             // SDL_Delay(5000);
         }
         waitIdle(vulkan);
@@ -63,11 +63,11 @@ else
         auto win = Window("title", 600, 300);
         Vulkan vulkan = Vulkan("title", win._sdlWindow, true);
         mainLoop(win, vulkan);
-        destroy(vulkan);
+        vulkan.cleanup();
         destroyWindow(win);
         SDL_Vulkan_UnloadLibrary();
+        IMG_Quit();
         SDL_Quit();
-
     }
 
 }
