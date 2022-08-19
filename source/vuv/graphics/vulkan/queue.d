@@ -1,7 +1,8 @@
 module vuv.graphics.vulkan.queue;
 import erupted;
 
-void present(ref VkQueue presentQueue, ref VkSemaphore[] signalSemaphores, ref VkSwapchainKHR swapchain, uint32_t imageIndex)
+void present(ref VkQueue presentQueue, ref VkSemaphore[] signalSemaphores, ref VkSwapchainKHR swapchain,
+    uint imageIndex)
 {
     VkPresentInfoKHR presentInfo;
     presentInfo.sType = VkStructureType.VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;

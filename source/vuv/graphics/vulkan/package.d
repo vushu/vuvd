@@ -93,8 +93,7 @@ struct Vulkan
 
         writeln("Successfully created vulkan context");
 
-        _recordData = CommandRecordData(_commandBuffer, _renderPass,
-            _queueFamilyIndices.graphicsFamily.get, _swapchainFramebuffers, _swapchainData
+        _recordData = CommandRecordData(_commandBuffer, _renderPass, _swapchainFramebuffers, _swapchainData
                 .swapChainExtent);
         _syncObjects = createSyncObjects(_device);
 
@@ -157,7 +156,7 @@ void drawFrame(ref Vulkan vulkan)
 
     uint imageIndex;
     VkResult result = vkAcquireNextImageKHR(vulkan._device, vulkan._swapchain, size_t.max, vulkan
-            ._syncObjects.imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+            ._syncObjects.waitSemaphores[0], VK_NULL_HANDLE, &imageIndex);
     debug
     {
         if (result == VkResult.VK_ERROR_OUT_OF_DATE_KHR)
@@ -168,9 +167,13 @@ void drawFrame(ref Vulkan vulkan)
     vkResetCommandBuffer(vulkan._recordData.commandBuffer, 0);
 
     recordCommandBuffer(vulkan._recordData, vulkan._graphicsPipeline, imageIndex);
-    submitCommandBuffer(vulkan._graphicsQueue, vulkan._presentQueue, vulkan._syncObjects, vulkan
+    if (submitCommandBuffer(vulkan._graphicsQueue, vulkan._presentQueue, vulkan._syncObjects, vulkan
             ._recordData.commandBuffer, vulkan
-            ._swapchain, imageIndex);
+            ._swapchain, imageIndex))
+    {
+
+        present(vulkan._presentQueue, vulkan._syncObjects.signalSemaphores, vulkan._swapchain, imageIndex);
+    }
 
 }
 

@@ -130,3 +130,9 @@ void cleanupImageView(ref VkImageView[] imageViews, ref VkDevice device) nothrow
         vkDestroyImageView(device, imageview, null);
     }
 }
+
+bool getNextImage(ref VkDevice device, ref VkSwapchainKHR swapchain, ref VkSemaphore waitSemaphore, out uint imageIndex)
+{
+    VkResult result = vkAcquireNextImageKHR(device, swapchain, size_t.max, waitSemaphore, VK_NULL_HANDLE, &imageIndex);
+    return result == VkResult.VK_SUCCESS;
+}

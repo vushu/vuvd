@@ -109,8 +109,7 @@ SDL_Window* createSDLWindow(string title, int width, int height) nothrow @nogc @
     {
         if (SDL_Window* sdlWindow = createWindow(title, width, height))
         {
-            loadGlobalLevelFunctions(
-                cast(PFN_vkGetInstanceProcAddr) SDL_Vulkan_GetVkGetInstanceProcAddr());
+            loadGlobalLevelFunctions( cast(PFN_vkGetInstanceProcAddr) SDL_Vulkan_GetVkGetInstanceProcAddr());
             return sdlWindow;
         }
     }

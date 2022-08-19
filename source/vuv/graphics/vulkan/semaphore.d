@@ -3,8 +3,10 @@ import erupted;
 
 struct SyncObjects
 {
-    VkSemaphore imageAvailableSemaphore;
-    VkSemaphore renderFinishedSemaphore;
+    VkSemaphore[] waitSemaphores;
+    VkSemaphore[] signalSemaphores;
+    // VkSemaphore imageAvailableSemaphore;
+    // VkSemaphore renderFinishedSemaphore;
     VkFence inFlightFence;
 }
 
@@ -24,13 +26,15 @@ unittest
 SyncObjects createSyncObjects(VkDevice device)
 {
     SyncObjects syncObjects;
-    assert(createSemaphore(device, syncObjects.imageAvailableSemaphore));
-    assert(createSemaphore(device, syncObjects.renderFinishedSemaphore));
+    syncObjects.signalSemaphores.length = 1;
+    syncObjects.waitSemaphores.length = 1;
+    assert(createSemaphore(device, syncObjects.waitSemaphores[0]));
+    assert(createSemaphore(device, syncObjects.signalSemaphores[0]));
     assert(createFence(device, true, syncObjects.inFlightFence));
     return syncObjects;
 }
 
-bool createSemaphore(ref VkDevice device, out VkSemaphore semaphore)
+bool createSemaphore(ref VkDevice device, ref VkSemaphore semaphore)
 {
     VkSemaphoreCreateInfo semaphoreCreateInfo;
     semaphoreCreateInfo.sType = VkStructureType.VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -51,7 +55,14 @@ bool createFence(ref VkDevice device, bool signaled, out VkFence fence)
 
 void cleanupSyncObjects(ref SyncObjects syncObjects, ref VkDevice device) @nogc nothrow
 {
-    vkDestroySemaphore(device, syncObjects.imageAvailableSemaphore, null);
-    vkDestroySemaphore(device, syncObjects.renderFinishedSemaphore, null);
+    foreach (VkSemaphore waitSemaphore; syncObjects.waitSemaphores)
+    {
+        vkDestroySemaphore(device, waitSemaphore, null);
+    }
+
+    foreach (VkSemaphore signalSemaphore; syncObjects.signalSemaphores)
+    {
+        vkDestroySemaphore(device, signalSemaphore, null);
+    }
     vkDestroyFence(device, syncObjects.inFlightFence, null);
 }

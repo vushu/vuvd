@@ -52,7 +52,7 @@ else
 
             drawFrame(vulkan);
 
-            // SDL_Delay(1 / 60);
+            SDL_Delay(1 / 60);
             // SDL_Delay(5000);
         }
         waitIdle(vulkan);
