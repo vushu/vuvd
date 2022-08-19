@@ -195,12 +195,12 @@ VkPresentModeKHR chooseSwapPresentMode(ref VkPresentModeKHR[] availablePresentMo
 @trusted VkExtent2D chooseSwapExtent(ref VkSurfaceCapabilitiesKHR capabilities,
     SDL_Window* sdlWindow)
 {
-    debug import unit_threaded;
+    // debug import unit_threaded;
 
-    debug writelnUt("current extent width: ", capabilities.currentExtent.width);
+    // debug writelnUt("current extent width: ", capabilities.currentExtent.width);
     if (capabilities.currentExtent.width != uint32_t.max)
     {
-        debug writelnUt("Returning current extent");
+        // debug writelnUt("Returning current extent");
         return capabilities.currentExtent;
     }
     int width, height;
