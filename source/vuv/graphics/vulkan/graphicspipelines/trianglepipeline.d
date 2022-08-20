@@ -12,16 +12,10 @@ struct ShadersModules
     VkShaderModule fragmentShaderModule;
 }
 
-void createTriangleGraphicsPipeline(ref VkDevice device)
+VkPipelineShaderStageCreateInfo[] createTriangleShaderStages(ref VkDevice device, string vertexFile, string fragmentFile, out ShadersModules shaderModules)
 {
-
-    auto dynamicStageCreateInfo = createDynamicStates(getDynamicStates);
-}
-
-VkPipelineShaderStageCreateInfo[] createTriangleShaderStages(ref VkDevice device, out ShadersModules shaderModules)
-{
-    auto vertexShaderCode = readFile("shaders/triangle/vert.spv");
-    auto fragmentShaderCode = readFile("shaders/triangle/frag.spv");
+    auto vertexShaderCode = readFile(vertexFile);
+    auto fragmentShaderCode = readFile(fragmentFile);
 
     shaderModules.vertexShaderModule = createShaderModule(device, vertexShaderCode);
     shaderModules.fragmentShaderModule = createShaderModule(device, fragmentShaderCode);
@@ -34,6 +28,11 @@ VkPipelineShaderStageCreateInfo[] createTriangleShaderStages(ref VkDevice device
     ];
 
     return shaderStages;
+}
+
+VkPipelineShaderStageCreateInfo[] createTriangleShaderStages(ref VkDevice device, out ShadersModules shaderModules)
+{
+    return createTriangleShaderStages(device, "shaders/triangle/vert.spv", "shaders/triangle/frag.spv", shaderModules);
 }
 
 void cleanupShaderModules(ref VkDevice device, ref ShadersModules shaderModules)
