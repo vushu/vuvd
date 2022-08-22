@@ -14,8 +14,6 @@ struct VertexStore
 {
     vec2f[] positions;
     vec3f[] colors;
-    // vec2f[] textureCoordinates;
-    // vec4f[] colors;
 }
 
 void addVertex(ref VertexStore vertexStore, vec2f position, vec3f color)

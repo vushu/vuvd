@@ -227,6 +227,9 @@ unittest
     assert(recordCommandBuffer(fixture.commandRecordData, fixture.graphicsPipeline, imageIndex, 0));
     assert(submitCommandBuffer(fixture.graphicsQueue, fixture.presentQueue, syncObjects, fixture.commandBuffers[0], fixture
             .swapchain, 0));
+    
+    vkWaitForFences(fixture.device, 1, &syncObjects.inFlightFences[0], VK_TRUE, uint64_t.max);
+    vkResetFences(fixture.device, 1, &syncObjects.inFlightFences[0]);
 
 }
 
