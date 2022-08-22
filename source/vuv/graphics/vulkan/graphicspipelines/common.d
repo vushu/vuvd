@@ -3,6 +3,7 @@ import erupted;
 import std.stdio;
 import unit_threaded : Tags;
 import vuv.graphics.vulkan.swapchain : SwapchainData;
+import vuv.graphics.vertexstore;
 
 version (unittest)
 {
@@ -89,6 +90,19 @@ VkPipelineDynamicStateCreateInfo createDynamicStates(ref VkDynamicState[] dynami
     dynamicStateCreateInfo.dynamicStateCount = cast(uint) dynamicStates.length;
     dynamicStateCreateInfo.pDynamicStates = dynamicStates.ptr;
     return dynamicStateCreateInfo;
+}
+
+VkPipelineVertexInputStateCreateInfo addAttributeDescriptions(
+    VkPipelineVertexInputStateCreateInfo vertexInputInfo,
+    VkVertexInputBindingDescription bindingDescription,
+    VkVertexInputAttributeDescription[2] attributesDescriptions)
+
+{
+    vertexInputInfo.vertexBindingDescriptionCount = 1;
+    vertexInputInfo.vertexAttributeDescriptionCount = attributesDescriptions.length;
+    vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+    vertexInputInfo.pVertexAttributeDescriptions = attributesDescriptions.ptr;
+    return vertexInputInfo;
 }
 
 VkPipelineVertexInputStateCreateInfo createVertexInput()
@@ -265,7 +279,10 @@ GraphicsPipelineCreateInfos createGraphicsPipelineCreateInfos(ref VkDevice devic
     graphicsCreateInfo.pipelineLayout = pipelineLayout;
     graphicsCreateInfo.renderPass = renderPass;
     graphicsCreateInfo.shaderStages = renderStages;
-    graphicsCreateInfo.vertexInputCreateInfo = createVertexInput();
+    // graphicsCreateInfo.vertexInputCreateInfo = addAttributeDescriptions(
+        // createVertexInput(), getBindingDescription, getAttributeDescriptions);
+
+    graphicsCreateInfo.vertexInputCreateInfo = createVertexInput;
     graphicsCreateInfo.vertexInputAssemblyCreateInfo = createInputAssemblyWithTriangle();
     graphicsCreateInfo.rasterizationCreateInfo = createRasterizerInfo();
     graphicsCreateInfo.multisampleCreateInfo = createMultisampling();

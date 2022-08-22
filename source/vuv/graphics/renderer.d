@@ -18,7 +18,7 @@ private:
 
 void initializeRenderer(ref Renderer renderer, ref Window window)
 {
-
+    renderer._vulkan = Vulkan(window.title, window._sdlWindow, true);
 }
 
 @Tags("github-actions", "Test renderer")

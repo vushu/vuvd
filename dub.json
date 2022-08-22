@@ -1,47 +1,48 @@
 {
-    "authors": [
-        "Dan Vu"
-    ],
-    "configurations": [
-        {
-            "name": "executable",
-            "targetType": "executable"
-        },
-        {
-            "dependencies": {
-                "unit-threaded": ">=0.0.0"
-            },
-            "excludedSourceFiles": [
-                "source/app.d"
-            ],
-            "mainSourceFile": "bin/ut.d",
-            "name": "unittest",
-            "preBuildCommands": [
-                "$DUB run --compiler=$$DC unit-threaded -c gen_ut_main -- -f bin/ut.d -d $DUB"
-            ],
-            "targetType": "executable"
-        }
-    ],
-    "copyright": "Copyright © 2022, Dan Vu",
-    "subConfigurations": {
-        "bindbc-sdl": "dynamicBC"
-    },
-    "dependencies": {
-        "bindbc-loader": "~>1.0.1",
-        "bindbc-sdl": "~>1.2.1",
-        "erupted": "~>2.1.69",
-        "unit-threaded": "~>2.0.5"
-    },
-    "description": "A minimal D application.",
-    "license": "proprietary",
-    "name": "vuvproject",
-    "targetPath": "bin",
-    "targetType": "executable",
-    "versions": [
-        "SDL_2014",
-        "BindSDL_Image",
-        "BindSDL_TTF",
-        "BindSDL_Mixer",
-        "BindSDL_Net"
-    ]
+	"authors": [
+		"Dan Vu"
+	],
+	"configurations": [
+		{
+			"name": "executable",
+			"targetType": "executable"
+		},
+		{
+			"dependencies": {
+				"unit-threaded": ">=0.0.0"
+			},
+			"excludedSourceFiles": [
+				"source/app.d"
+			],
+			"mainSourceFile": "bin/ut.d",
+			"name": "unittest",
+			"preBuildCommands": [
+				"$DUB run --compiler=$$DC unit-threaded -c gen_ut_main -- -f bin/ut.d -d $DUB"
+			],
+			"targetType": "executable"
+		}
+	],
+	"copyright": "Copyright © 2022, Dan Vu",
+	"dependencies": {
+		"bindbc-loader": "~>1.0.1",
+		"bindbc-sdl": "~>1.2.1",
+		"dplug:math": "~>12.7.12",
+		"erupted": "~>2.1.69",
+		"unit-threaded": "~>2.0.5"
+	},
+	"description": "A minimal D application.",
+	"license": "proprietary",
+	"name": "vuvproject",
+	"subConfigurations": {
+		"bindbc-sdl": "dynamicBC"
+	},
+	"targetPath": "bin",
+	"targetType": "executable",
+	"versions": [
+		"SDL_2014",
+		"BindSDL_Image",
+		"BindSDL_TTF",
+		"BindSDL_Mixer",
+		"BindSDL_Net"
+	]
 }
