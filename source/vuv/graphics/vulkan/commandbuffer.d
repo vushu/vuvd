@@ -1,10 +1,12 @@
 module vuv.graphics.vulkan.commandbuffer;
 import erupted;
 import vuv.graphics.vulkan.physicaldevice;
-import std.typecons : Nullable, RefCounted, Unique;
+import std.algorithm.mutation : move;
+import std.typecons : Nullable, RefCounted, refCounted, Unique;
 import vuv.graphics.vulkan.semaphore;
 import vuv.graphics.vulkan.queue;
 import std.stdio : writeln;
+import unit_threaded : Tags;
 
 struct CommandRecordData
 {
@@ -36,6 +38,7 @@ version (unittest)
         // @disable
         // this(this);
         VkDevice device;
+        VkPhysicalDevice physicalDevice;
         VkSwapchainKHR swapchain;
         SwapchainData swapchainData;
         VkRenderPass renderPass;
@@ -50,12 +53,13 @@ version (unittest)
         RefCounted!TestFramebufferFixture framebufferFixture;
         ~this()
         {
+            debug writeln("Destroying this");
             commandRecordData.swapchainFramebuffers.cleanupSwapchainFramebuffers(device);
             vkDestroyPipelineLayout(device, pipelineLayout, null);
         }
     }
 
-    TestCommandBufferFixture getCommandBufferFixture()
+    RefCounted!TestCommandBufferFixture getRefCountedCommandBufferFixture()
     {
         synchronized
         {
@@ -94,11 +98,17 @@ version (unittest)
 
             auto presentQueue = getQueue(fixture.device, fixture
                     .imageViewFixture.indices.presentFamily.get);
-            return TestCommandBufferFixture(fixture.device, fixture.swapchain, fixture.swapchainData, fixture.renderPass,
+            return RefCounted!TestCommandBufferFixture(fixture.device, fixture.physicalDevice, fixture.swapchain, fixture.swapchainData, fixture.renderPass,
                 fixture.swapchainImageViews, commandPool, commandBuffers, pipelineLayout,
                 graphicsPipeline, graphicsQueue, presentQueue, recordData, fixture);
         }
     }
+
+    // RefCounted!TestCommandBufferFixture getRefCountedCommandBufferFixture()
+    // {
+    //     // auto fixture = getCommandBufferFixture;
+    //     // return RefCounted!TestCommandBufferFixture(refCounted(fixture));
+    // }
 
 }
 
@@ -198,10 +208,11 @@ void setCommandScissor(ref VkCommandBuffer commandBuffer, ref VkExtent2D swapcha
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 }
 
+@Tags("recordCommandBuffer")
 @("Testing recordCommandBuffer")
 unittest
 {
-    auto fixture = getCommandBufferFixture;
+    auto fixture = getRefCountedCommandBufferFixture;
 
     auto syncObjects = createSyncObjects(fixture.device, getMaxFramesInFlight);
     uint imageIndex;
@@ -213,7 +224,7 @@ unittest
 @("Testing submitCommandBuffer")
 unittest
 {
-    auto fixture = getCommandBufferFixture;
+    auto fixture = getRefCountedCommandBufferFixture;
 
     auto syncObjects = createSyncObjects(fixture.device, getMaxFramesInFlight);
     uint imageIndex;
@@ -227,7 +238,7 @@ unittest
     assert(recordCommandBuffer(fixture.commandRecordData, fixture.graphicsPipeline, imageIndex, 0));
     assert(submitCommandBuffer(fixture.graphicsQueue, fixture.presentQueue, syncObjects, fixture.commandBuffers[0], fixture
             .swapchain, 0));
-    
+
     vkWaitForFences(fixture.device, 1, &syncObjects.inFlightFences[0], VK_TRUE, uint64_t.max);
     vkResetFences(fixture.device, 1, &syncObjects.inFlightFences[0]);
 

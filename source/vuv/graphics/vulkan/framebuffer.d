@@ -17,6 +17,7 @@ version (unittest)
         // @disable
         // this(this);
         VkDevice device;
+        VkPhysicalDevice physicalDevice;
         VkAttachmentDescription colorAttachmentDescription;
         VkAttachmentReference colorAttachmentRefence;
         VkSwapchainKHR swapchain;
@@ -48,7 +49,7 @@ version (unittest)
                 fixture.swapchainImages, fixture.swapchainData);
             swapchainImageViews.length.shouldBeGreaterThan(0);
             assert(createRenderPass(fixture.device, createInfo, renderPass));
-            return TestFramebufferFixture(fixture.device, colorAttachmentDescription,
+            return TestFramebufferFixture(fixture.device, fixture.physicalDevice, colorAttachmentDescription,
                 colorAttachmentRefence, fixture.swapchain, fixture.swapchainData, renderPass,
                 swapchainImageViews, fixture);
         }
@@ -71,7 +72,7 @@ version (unittest)
                 fixture.swapchainImages, fixture.swapchainData);
             swapchainImageViews.length.shouldBeGreaterThan(0);
             assert(createRenderPass(fixture.device, createInfo, renderPass));
-            Unique!TestFramebufferFixture frameBufferFixture = new TestFramebufferFixture(fixture.device,
+            Unique!TestFramebufferFixture frameBufferFixture = new TestFramebufferFixture(fixture.device, fixture.physicalDevice,
                 colorAttachmentDescription,
                 colorAttachmentRefence, fixture.swapchain, fixture.swapchainData, renderPass,
                 swapchainImageViews, fixture);
@@ -96,7 +97,7 @@ version (unittest)
                 fixture.swapchainImages, fixture.swapchainData);
             swapchainImageViews.length.shouldBeGreaterThan(0);
             assert(createRenderPass(fixture.device, createInfo, renderPass));
-            return RefCounted!TestFramebufferFixture(fixture.device,
+            return RefCounted!TestFramebufferFixture(fixture.device, fixture.physicalDevice,
                 colorAttachmentDescription,
                 colorAttachmentRefence,
                 fixture.swapchain,

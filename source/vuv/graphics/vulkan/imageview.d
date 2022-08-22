@@ -17,6 +17,7 @@ version (unittest)
     {
 
         VkDevice device;
+        VkPhysicalDevice physicalDevice;
         VkSwapchainKHR swapchain;
         VkImage[] swapchainImages;
         SwapchainData swapchainData;
@@ -41,7 +42,7 @@ version (unittest)
             assert(createSwapchain(fixture.device, fixture.physicalDevice, fixture.surface, fixture.window, swapchain,
                     swapchainData, indices.graphicsFamily.get, indices.presentFamily.get));
             auto swapchainImages = getSwapchainImages(fixture.device, swapchain);
-            auto testFixture = TestImageViewFixture(fixture.device, swapchain,
+            auto testFixture = TestImageViewFixture(fixture.device, fixture.physicalDevice, swapchain,
                 swapchainImages, swapchainData, indices);
             return testFixture;
         }
@@ -59,7 +60,7 @@ version (unittest)
             assert(createSwapchain(fixture.device, fixture.physicalDevice, fixture.surface, fixture.window, swapchain,
                     swapchainData, indices.graphicsFamily.get, indices.presentFamily.get));
             auto swapchainImages = getSwapchainImages(fixture.device, swapchain);
-            return RefCounted!TestImageViewFixture(fixture.device, swapchain,
+            return RefCounted!TestImageViewFixture(fixture.device, fixture.physicalDevice, swapchain,
                 swapchainImages, swapchainData, indices);
         }
     }

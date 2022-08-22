@@ -80,10 +80,11 @@ VertexStore getTriangleVertexStore()
 @("Testing createVertexBuffer")
 unittest
 {
-    auto fixture = getCommandBufferFixture;
+    auto fixture = getRefCountedCommandBufferFixture;
     auto store = getTriangleVertexStore();
     VkBuffer buffer;
     store.createVertexBuffer(fixture.device, buffer).shouldBeTrue;
+    vkDestroyBuffer(fixture.device, buffer, null);
 }
 
 bool createVertexBuffer(ref VertexStore vertexStore, ref VkDevice device, out VkBuffer vertexBuffer)
