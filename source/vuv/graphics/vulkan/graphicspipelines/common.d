@@ -92,18 +92,18 @@ VkPipelineDynamicStateCreateInfo createDynamicStates(ref VkDynamicState[] dynami
     return dynamicStateCreateInfo;
 }
 
-VkPipelineVertexInputStateCreateInfo addAttributeDescriptions(
-    VkPipelineVertexInputStateCreateInfo vertexInputInfo,
-    VkVertexInputBindingDescription bindingDescription,
-    VkVertexInputAttributeDescription[2] attributesDescriptions)
+// VkPipelineVertexInputStateCreateInfo addAttributeDescriptions(
+//     VkPipelineVertexInputStateCreateInfo vertexInputInfo,
+//     VkVertexInputBindingDescription bindingDescription,
+//     VkVertexInputAttributeDescription[2] attributesDescriptions)
 
-{
-    vertexInputInfo.vertexBindingDescriptionCount = 1;
-    vertexInputInfo.vertexAttributeDescriptionCount = attributesDescriptions.length;
-    vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-    vertexInputInfo.pVertexAttributeDescriptions = attributesDescriptions.ptr;
-    return vertexInputInfo;
-}
+// {
+//     vertexInputInfo.vertexBindingDescriptionCount = 1;
+//     vertexInputInfo.vertexAttributeDescriptionCount = cast(uint32_t) attributesDescriptions.length;
+//     vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+//     vertexInputInfo.pVertexAttributeDescriptions = attributesDescriptions.ptr;
+//     return vertexInputInfo;
+// }
 
 VkPipelineVertexInputStateCreateInfo createVertexInput()
 {
@@ -279,10 +279,10 @@ GraphicsPipelineCreateInfos createGraphicsPipelineCreateInfos(ref VkDevice devic
     graphicsCreateInfo.pipelineLayout = pipelineLayout;
     graphicsCreateInfo.renderPass = renderPass;
     graphicsCreateInfo.shaderStages = renderStages;
-    // graphicsCreateInfo.vertexInputCreateInfo = addAttributeDescriptions(
-        // createVertexInput(), getBindingDescription, getAttributeDescriptions);
+    graphicsCreateInfo.vertexInputCreateInfo = addAttributeDescriptions(
+        createVertexInput(), getBindingDescription, getAttributeDescriptions);
 
-    graphicsCreateInfo.vertexInputCreateInfo = createVertexInput;
+    // graphicsCreateInfo.vertexInputCreateInfo = createVertexInput;
     graphicsCreateInfo.vertexInputAssemblyCreateInfo = createInputAssemblyWithTriangle();
     graphicsCreateInfo.rasterizationCreateInfo = createRasterizerInfo();
     graphicsCreateInfo.multisampleCreateInfo = createMultisampling();

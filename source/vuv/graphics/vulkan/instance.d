@@ -181,8 +181,12 @@ VkDebugUtilsMessengerCreateInfoEXT createVulkanDebug() @trusted nothrow
         }
         if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
         {
-            debug writeln("VULKAN CALLBACK DEBUG: ", to!string(pCallbackData.pMessage));
-            // Message is important enough to show
+            debug
+            {
+                writeln("------------------------------------------------------------------");
+                writeln("VULKAN CALLBACK DEBUG: ", to!string(pCallbackData.pMessage));
+                // Message is important enough to show
+            }
         }
         return VK_FALSE;
     };

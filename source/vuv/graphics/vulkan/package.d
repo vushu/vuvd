@@ -18,6 +18,8 @@ import vuv.graphics.vulkan.graphicspipelines.renderpass;
 import vuv.graphics.vulkan.framebuffer;
 import vuv.graphics.vulkan.semaphore;
 import vuv.graphics.vulkan.queue;
+import vuv.graphics.vertexstore;
+import vuv.graphics.vulkan.memory;
 
 import unit_threaded : Tags;
 
@@ -72,10 +74,47 @@ struct Vulkan
 
         assert(createRenderPass(_device, renderPassCreateInfo, _renderPass));
 
+        createLayoutNGraphicsPipeline();
+
+        //creating framebuffers
+        _swapchainFramebuffers = createSwapchainFramebuffers(_device, _imageViews, _renderPass, _swapchainData
+                .swapChainExtent);
+
         assert(createCommandPool(_device, _queueFamilyIndices.graphicsFamily.get, _commandPool));
+
+        createVertexBufferData();
 
         assert(createCommandBuffer(_device, _commandPool, getMaxFramesInFlight, _commandBuffers));
 
+        writeln("Successfully created vulkan context");
+
+        _recordData = CommandRecordData(_commandBuffers, _renderPass, _swapchainFramebuffers, _swapchainData
+                .swapChainExtent);
+        _syncObjects = createSyncObjects(_device, getMaxFramesInFlight);
+
+    }
+
+    void createVertexBufferData()
+    {
+        _vertexStore = getTriangleVertexStore;
+        _vertexBuffers.length = 1;
+        assert(createVertexBuffer(_vertexStore, _device, _vertexBuffers[0]));
+        // memory
+        VkMemoryRequirements memoryRequirements;
+        getMemoryRequirements(_device, _vertexBuffers[0], memoryRequirements);
+        uint result = findMemoryType(_physicalDevice, memoryRequirements.memoryTypeBits,
+            VkMemoryPropertyFlagBits.VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VkMemoryPropertyFlagBits
+                .VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        assert(result > 0);
+        assert(allocateMemory(_device, _physicalDevice, memoryRequirements, _vertexBufferMemory));
+        // binding test
+        bindMemory(_device, _vertexBuffers[0], _vertexBufferMemory);
+        mapVertexDataToVertexBuffer(_device, _vertexStore, _vertexBuffers[0], _vertexBufferMemory);
+
+    }
+
+    void createLayoutNGraphicsPipeline()
+    {
         ShadersModules shaderModules;
         auto stages = createTriangleShaderStages(_device, shaderModules);
 
@@ -87,17 +126,9 @@ struct Vulkan
             _swapchainData, colorBlendAttachment, _renderPass, _pipelineLayout, stages);
 
         assert(createGraphicsPipeline(_device, graphicsCreateInfos, _graphicsPipeline));
-        _swapchainFramebuffers = createSwapchainFramebuffers(_device, _imageViews, _renderPass, _swapchainData
-                .swapChainExtent);
 
         writeln("Created GraphicsPipeline!");
         cleanupShaderModules(_device, shaderModules);
-
-        writeln("Successfully created vulkan context");
-
-        _recordData = CommandRecordData(_commandBuffers, _renderPass, _swapchainFramebuffers, _swapchainData
-                .swapChainExtent);
-        _syncObjects = createSyncObjects(_device, getMaxFramesInFlight);
 
     }
 
@@ -111,6 +142,9 @@ struct Vulkan
         vkDestroyPipeline(_device, _graphicsPipeline, null);
         vkDestroyPipelineLayout(_device, _pipelineLayout, null);
         vkDestroyRenderPass(_device, _renderPass, null);
+
+        vkDestroyBuffer(_device, _vertexBuffers[0], null);
+        vkFreeMemory(_device, _vertexBufferMemory, null);
 
         cleanupSyncObjects(_syncObjects, _device);
         // cleanupImageView(_imageViews, _device);
@@ -134,6 +168,7 @@ struct Vulkan
         vkDeviceWaitIdle(_device);
 
         cleanupSwapchain();
+        vkDestroyBuffer(_device, _vertexBuffers[0], null);
 
         assert(createSwapchain(_device, _physicalDevice, _surface, _sdlWindow, _swapchain, _swapchainData,
                 _queueFamilyIndices.graphicsFamily.get, _queueFamilyIndices.presentFamily.get));
@@ -179,7 +214,9 @@ private:
     SyncObjects _syncObjects;
     bool _frameBufferResized = false;
     uint _currentFrame = 0;
-
+    VertexStore _vertexStore;
+    VkBuffer[] _vertexBuffers;
+    VkDeviceMemory _vertexBufferMemory;
 }
 
 void drawFrame(ref Vulkan vulkan)
@@ -208,8 +245,9 @@ void drawFrame(ref Vulkan vulkan)
 
     vkResetCommandBuffer(vulkan._recordData.commandBuffers[vulkan._currentFrame], 0);
 
-    recordCommandBuffer(vulkan._recordData, vulkan._graphicsPipeline, imageIndex, vulkan
-            ._currentFrame);
+    recordCommandBuffer(vulkan._recordData, vulkan._graphicsPipeline, vulkan._vertexStore,
+        vulkan._vertexBuffers, imageIndex, vulkan._currentFrame);
+
     if (submitCommandBuffer(vulkan._graphicsQueue, vulkan._presentQueue, vulkan._syncObjects, vulkan
             ._recordData.commandBuffers[vulkan._currentFrame], vulkan
             ._swapchain, vulkan._currentFrame))

@@ -6,6 +6,7 @@ import std.typecons : Nullable, RefCounted, refCounted, Unique;
 import vuv.graphics.vulkan.semaphore;
 import vuv.graphics.vulkan.queue;
 import std.stdio : writeln;
+import vuv.graphics.vertexstore;
 import unit_threaded : Tags;
 
 struct CommandRecordData
@@ -14,12 +15,10 @@ struct CommandRecordData
     VkRenderPass renderPass;
     VkFramebuffer[] swapchainFramebuffers;
     VkExtent2D swapchainExtent;
-
 }
 
 version (unittest)
 {
-
     import vuv.graphics.vulkan.logicaldevice : getQueue;
     import vuv.graphics.vulkan.swapchain;
     import vuv.graphics.vulkan.framebuffer;
@@ -90,8 +89,9 @@ version (unittest)
                     .renderPass, fixture.swapchainData.swapChainExtent);
             swapchainBuffers.length.shouldBeGreaterThan(0);
 
-            CommandRecordData recordData = CommandRecordData(commandBuffers, fixture.renderPass, swapchainBuffers, fixture
-                    .swapchainData.swapChainExtent);
+            CommandRecordData recordData = CommandRecordData(commandBuffers,
+                fixture.renderPass,
+                swapchainBuffers, fixture.swapchainData.swapChainExtent);
 
             auto graphicsQueue = getQueue(fixture.device, fixture
                     .imageViewFixture.indices.graphicsFamily.get);
@@ -188,7 +188,6 @@ void createRenderPassBegin(
 
 void setCommandViewport(ref VkCommandBuffer commandBuffer, ref VkExtent2D swapchainExtent)
 {
-
     VkViewport viewport;
     viewport.x = 0.0f;
     viewport.y = 0.0f;
@@ -218,7 +217,14 @@ unittest
     uint imageIndex;
     getNextImage(fixture.device, fixture.swapchain, syncObjects.waitSemaphores[0], imageIndex);
 
-    assert(recordCommandBuffer(fixture.commandRecordData, fixture.graphicsPipeline, imageIndex, 0));
+    auto vertexStore = getTriangleVertexStore;
+    VkBuffer[1] vertexBuffers;
+
+    assert(createVertexBuffer(vertexStore, fixture.device, vertexBuffers[0]));
+
+    assert(recordCommandBuffer(fixture.commandRecordData,
+            fixture.graphicsPipeline, vertexStore,
+            vertexBuffers, imageIndex, 0));
 }
 
 @("Testing submitCommandBuffer")
@@ -235,7 +241,13 @@ unittest
     vkWaitForFences(fixture.device, 1, &syncObjects.inFlightFences[0], VK_TRUE, uint64_t.max);
     vkResetFences(fixture.device, 1, &syncObjects.inFlightFences[0]);
 
-    assert(recordCommandBuffer(fixture.commandRecordData, fixture.graphicsPipeline, imageIndex, 0));
+    auto vertexStore = getTriangleVertexStore;
+    VkBuffer[1] vertexBuffers;
+    createVertexBuffer(vertexStore, fixture.device, vertexBuffers[0]);
+
+    assert(createVertexBuffer(vertexStore, fixture.device, vertexBuffers[0]));
+
+    assert(recordCommandBuffer(fixture.commandRecordData, fixture.graphicsPipeline, vertexStore, vertexBuffers, imageIndex, 0));
     assert(submitCommandBuffer(fixture.graphicsQueue, fixture.presentQueue, syncObjects, fixture.commandBuffers[0], fixture
             .swapchain, 0));
 
@@ -244,7 +256,8 @@ unittest
 
 }
 
-bool recordCommandBuffer(ref CommandRecordData commandRecordData, ref VkPipeline graphicsPipeline, uint imageIndex, uint currentFrame)
+bool recordCommandBuffer(ref CommandRecordData commandRecordData, ref VkPipeline graphicsPipeline, ref VertexStore vertexStore,
+    VkBuffer[] vertexBuffers, uint imageIndex, uint currentFrame)
 {
     assert(createCommandBufferBegin(commandRecordData.commandBuffers[currentFrame]));
 
@@ -260,7 +273,12 @@ bool recordCommandBuffer(ref CommandRecordData commandRecordData, ref VkPipeline
     setCommandScissor(commandRecordData.commandBuffers[currentFrame], commandRecordData
             .swapchainExtent);
 
-    vkCmdDraw(commandRecordData.commandBuffers[currentFrame], 3, 1, 0, 0);
+    VkBuffer[1] numberOfvertexBuffers = vertexBuffers[0];
+    VkDeviceSize[1] offsets = 0;
+    vkCmdBindVertexBuffers(commandRecordData.commandBuffers[currentFrame], 0, 1,
+        numberOfvertexBuffers.ptr, offsets.ptr);
+
+    vkCmdDraw(commandRecordData.commandBuffers[currentFrame], cast(uint32_t)vertexStore.vertices.length, 1, 0, 0);
 
     vkCmdEndRenderPass(commandRecordData.commandBuffers[currentFrame]);
 

@@ -55,31 +55,6 @@ version (unittest)
         }
     }
 
-    Unique!TestFramebufferFixture getFramebufferFixtureOnHeap()
-    {
-        synchronized
-        {
-            auto fixture = getRefCountedImageViewFixture();
-            auto colorAttachmentDescription = createAttachmentDescription(
-                fixture.swapchainData.swapChainImageFormat);
-            auto colorAttachmentRefence = createColorAttachmentReference();
-            auto subPass = createSubpassDescription(colorAttachmentRefence);
-            auto createInfo = createRenderPassInfo(colorAttachmentDescription, subPass);
-            VkRenderPass renderPass;
-            VkImageView[] swapchainImageViews;
-            fixture.swapchainImages.length.shouldBeGreaterThan(0);
-            swapchainImageViews = createImageViews(fixture.device,
-                fixture.swapchainImages, fixture.swapchainData);
-            swapchainImageViews.length.shouldBeGreaterThan(0);
-            assert(createRenderPass(fixture.device, createInfo, renderPass));
-            Unique!TestFramebufferFixture frameBufferFixture = new TestFramebufferFixture(fixture.device, fixture.physicalDevice,
-                colorAttachmentDescription,
-                colorAttachmentRefence, fixture.swapchain, fixture.swapchainData, renderPass,
-                swapchainImageViews, fixture);
-            return frameBufferFixture.release;
-        }
-    }
-
     RefCounted!TestFramebufferFixture getRefcountedFramebufferFixture()
     {
         synchronized
