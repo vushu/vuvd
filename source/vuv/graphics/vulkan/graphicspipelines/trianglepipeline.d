@@ -32,8 +32,8 @@ VkPipelineShaderStageCreateInfo[] createTriangleShaderStages(ref VkDevice device
 
 VkPipelineShaderStageCreateInfo[] createTriangleShaderStages(ref VkDevice device, out ShadersModules shaderModules)
 {
-    // return createTriangleShaderStages(device, "shaders/triangle/vert.spv", "shaders/triangle/frag.spv", shaderModules);
-    return createTriangleShaderStages(device, "shaders/triangle/defaultvert.spv", "shaders/triangle/defaultfrag.spv", shaderModules);
+    return createTriangleShaderStages(device, "shaders/triangle/vert.spv", "shaders/triangle/frag.spv", shaderModules);
+    // return createTriangleShaderStages(device, "shaders/triangle/defaultvert.spv", "shaders/triangle/defaultfrag.spv", shaderModules);
 }
 
 void cleanupShaderModules(ref VkDevice device, ref ShadersModules shaderModules)
