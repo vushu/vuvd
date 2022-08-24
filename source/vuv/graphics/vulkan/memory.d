@@ -2,9 +2,12 @@ module vuv.graphics.vulkan.memory;
 import erupted;
 import std.stdio : writeln;
 import unit_threaded : Tags;
+import vuv.graphics.vertexstore;
+import core.stdc.string : memcpy;
 
 version (unittest)
 {
+    import vuv.graphics.vulkan;
     import unit_threaded : writelnUt;
     import vuv.graphics.vulkan.commandbuffer;
     import std.typecons : RefCounted;
@@ -29,7 +32,7 @@ version (unittest)
         auto vertexStore = getTriangleVertexStore;
 
         VkBuffer vertexBuffer;
-        assert(createVertexBuffer(vertexStore, fixture.device, vertexBuffer));
+        // assert(createVertexBuffer(vertexStore, fixture.device, vertexBuffer));
         return TestMemoryFixture(fixture.device, fixture.physicalDevice, vertexBuffer, vertexStore, fixture);
     }
 
@@ -98,7 +101,7 @@ unittest
 bool allocateMemory(ref VkDevice device, ref VkPhysicalDevice physicalDevice, ref VkMemoryRequirements memoryRequirements, out VkDeviceMemory vertexBufferMemory)
 {
     VkMemoryAllocateInfo allocInfo;
-    allocInfo.sType = VkStructureType.VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO;
+    allocInfo.sType = VkStructureType.VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memoryRequirements.size;
     allocInfo.memoryTypeIndex = findMemoryType(physicalDevice, memoryRequirements.memoryTypeBits,
         VkMemoryPropertyFlagBits.VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VkMemoryPropertyFlagBits
@@ -111,6 +114,7 @@ bool allocateMemory(ref VkDevice device, ref VkPhysicalDevice physicalDevice, re
 unittest
 {
     auto fixture = getMemoryFixture;
+
     VkMemoryRequirements memoryRequirements;
     getMemoryRequirements(fixture.device, fixture.vertexBuffer, memoryRequirements);
     uint result = findMemoryType(fixture.physicalDevice, memoryRequirements.memoryTypeBits,
@@ -129,8 +133,54 @@ unittest
 
 }
 
+@Tags("mapVertexDataToVertexBuffer")
+@("Testing mapVertexDataToVertexBuffer")
+unittest
+{
+    auto fixture = getMemoryFixture;
+
+    VkMemoryRequirements memoryRequirements;
+    // getMemoryRequirements(fixture.device, fixture.vertexBuffer, memoryRequirements);
+    // uint result = findMemoryType(fixture.physicalDevice, memoryRequirements.memoryTypeBits,
+    //     VkMemoryPropertyFlagBits.VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VkMemoryPropertyFlagBits
+    //         .VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    // writelnUt("result is: ", result);
+    // assert(result > 0);
+    // VkDeviceMemory vertexBufferMemory;
+    // assert(allocateMemory(fixture.device, fixture.physicalDevice, memoryRequirements, vertexBufferMemory));
+    // binding test
+
+    // VkBuffer vertexBuffer;
+    // assert(createVertexBuffer(fixture.vertexStore, fixture.device, vertexBuffer));
+    // bindMemory(fixture.device, vertexBuffer, vertexBufferMemory);
+    // scope (exit)
+    // {
+    //     vkFreeMemory(fixture.device, vertexBufferMemory, null);
+    // }
+    // mapVertexDataToVertexBuffer(fixture.device, fixture.vertexStore, vertexBuffer, vertexBufferMemory);
+    // scope (exit)
+    // {
+    //     vkDestroyBuffer(fixture.device, vertexBufferMemory, null);
+    // }
+}
+/** 
+ * Connecting cpu buffer to gpu memory 
+ * Params:
+ *   device = gpu device
+ *   vertexBuffer = cpu buffer
+ *   vertexBufferMemory = gpu memory
+ */
 void bindMemory(ref VkDevice device, ref VkBuffer vertexBuffer, ref VkDeviceMemory vertexBufferMemory)
 {
-
     vkBindBufferMemory(device, vertexBuffer, vertexBufferMemory, 0);
+}
+
+void mapVertexDataToVertexBuffer(ref VkDevice device, ref VertexStore vertexStore, ref VkBuffer vertexBuffer,
+    ref VkDeviceMemory vertexBufferMemory)
+{
+    void* data;
+    assert(vertexStore.getSize == vertexStore.vertices.length * vertexStore.vertices[0].sizeof);
+    vkMapMemory(device, vertexBufferMemory, 0, vertexStore.getSize, 0, &data);
+    memcpy(data, cast(void*) vertexStore.vertices, cast(size_t) vertexStore.getSize);
+    vkUnmapMemory(device, vertexBufferMemory);
 }

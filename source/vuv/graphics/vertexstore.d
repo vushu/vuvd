@@ -10,16 +10,40 @@ version (unittest)
     import unit_threaded;
 }
 
-struct VertexStore
+struct Vector2
 {
-    vec2f[] positions;
-    vec3f[] colors;
+    float x, y;
 }
 
-void addVertex(ref VertexStore vertexStore, vec2f position, vec3f color)
+struct Vector3
 {
-    vertexStore.positions ~= position;
-    vertexStore.colors ~= color;
+    float x, y, z;
+}
+
+struct Vertex
+{
+    float[2] position;
+    float[3] color;
+    // Vector2 position;
+    // Vector2 position;
+    // Vector3 color;
+}
+
+struct VertexStore
+{
+    Vertex[] vertices;
+}
+
+void add(ref VertexStore vertexStore, Vertex vertex)
+{
+    vertexStore.vertices ~= vertex;
+}
+
+void addVertex(ref VertexStore vertexStore, Vector2 position, Vector3 color)
+{
+    vertexStore.vertices ~= Vertex([position.x, position.y], [
+            color.x, color.y, color.z
+        ]);
 }
 
 @Tags("getSize")
@@ -27,52 +51,30 @@ void addVertex(ref VertexStore vertexStore, vec2f position, vec3f color)
 unittest
 {
     auto store = getTriangleVertexStore();
+    writelnUt("Size OF Vertex: ", Vertex.sizeof);
+
+    writelnUt("Size OF VERTEXSTORE: ", store.sizeof - 12);
+    writelnUt("Size OF VEC2: ", vec2f.sizeof);
+    writelnUt("Size OF VEC3: ", vec3f.sizeof);
     assert(store.getSize == (vec2f.sizeof + vec3f.sizeof) * 3);
+    writelnUt("Size of VertexStore ", cast(size_t)(vec2f.sizeof + vec3f.sizeof) * 3);
 
 }
 
 ulong getSize(ref VertexStore vertexStore)
 {
-    return (vec2f.sizeof + vec3f.sizeof) * vertexStore.positions.length;
-}
-
-struct Vertex
-{
-    vec2f position;
-    vec3f color;
-}
-
-VkVertexInputBindingDescription getBindingDescription()
-{
-    VkVertexInputBindingDescription bindingDescription;
-    bindingDescription.binding = 0;
-    bindingDescription.stride = vec3f.sizeof + vec2f.sizeof;
-    bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-    return bindingDescription;
-}
-
-VkVertexInputAttributeDescription[2] getAttributeDescriptions()
-{
-    VkVertexInputAttributeDescription[2] attributesDescriptions;
-    attributesDescriptions[0].binding = 0;
-    attributesDescriptions[0].location = 0;
-    attributesDescriptions[0].format = VkFormat.VK_FORMAT_R32G32_SFLOAT;
-    attributesDescriptions[0].offset = 0;
-
-    attributesDescriptions[1].binding = 0;
-    attributesDescriptions[1].location = 1;
-    attributesDescriptions[1].format = VkFormat.VK_FORMAT_R32G32B32_SFLOAT;
-    attributesDescriptions[1].offset = vec2f.sizeof;
-    return attributesDescriptions;
+    return Vertex.sizeof * vertexStore.vertices.length;
 }
 
 VertexStore getTriangleVertexStore()
 {
     VertexStore vertexStore;
-    vertexStore.addVertex(vec2f(0, -0.5), vec3f(1, 0, 0));
-    vertexStore.addVertex(vec2f(0.5, 0.5), vec3f(0, 1, 0));
-    vertexStore.addVertex(vec2f(-0.5, 0.5), vec3f(0, 0, 1));
+    vertexStore.add(Vertex([0.0, -0.5], [1.0, 0.0, 0.0]));
+    vertexStore.add(Vertex([0.5, 0.5], [0.0, 1.0, 0.0]));
+    vertexStore.add(Vertex([-0.5, 0.5], [0.0, 0.0, 1.0]));
+    // vertexStore.addVertex(Vector2(0.0f, -0.5f), Vector3(1.0f, 0.0f, 0.0f));
+    // vertexStore.addVertex(Vector2(0.5f, 0.5f), Vector3(0.0f, 1.0f, 0.0f));
+    // vertexStore.addVertex(Vector2(-0.5f, 0.5f), Vector3(0.0f, 0.0f, 1.0f));
     return vertexStore;
 }
 
@@ -89,7 +91,6 @@ unittest
 
 bool createVertexBuffer(ref VertexStore vertexStore, ref VkDevice device, out VkBuffer vertexBuffer)
 {
-
     VkBufferCreateInfo bufferInfo;
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     bufferInfo.size = vertexStore.getSize;
@@ -97,5 +98,4 @@ bool createVertexBuffer(ref VertexStore vertexStore, ref VkDevice device, out Vk
     bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
     return vkCreateBuffer(device, &bufferInfo, null, &vertexBuffer) == VK_SUCCESS;
-
 }

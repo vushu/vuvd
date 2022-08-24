@@ -25,7 +25,6 @@ version (unittest)
         // RefCounted!TestSwapchainFixture swapchainFixture;
         ~this()
         {
-            debug writeln("noooooo destroyed ");
             vkDestroySwapchainKHR(device, swapchain, null);
         }
     }
