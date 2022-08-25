@@ -74,11 +74,11 @@ struct Vulkan
 
         assert(createRenderPass(_device, renderPassCreateInfo, _renderPass));
 
-        createLayoutNGraphicsPipeline();
+        // createLayoutNGraphicsPipeline();
 
-        //creating framebuffers
-        _swapchainFramebuffers = createSwapchainFramebuffers(_device, _imageViews, _renderPass, _swapchainData
-                .swapChainExtent);
+        // //creating framebuffers
+        // _swapchainFramebuffers = createSwapchainFramebuffers(_device, _imageViews, _renderPass, _swapchainData
+        //         .swapChainExtent);
 
         assert(createCommandPool(_device, _queueFamilyIndices.graphicsFamily.get, _commandPool));
 
@@ -86,6 +86,9 @@ struct Vulkan
 
         assert(createCommandBuffer(_device, _commandPool, getMaxFramesInFlight, _commandBuffers));
 
+        createLayoutNGraphicsPipeline();
+        _swapchainFramebuffers = createSwapchainFramebuffers(_device, _imageViews, _renderPass, _swapchainData
+                .swapChainExtent);
         writeln("Successfully created vulkan context");
 
         _recordData = CommandRecordData(_commandBuffers, _renderPass, _swapchainFramebuffers, _swapchainData
