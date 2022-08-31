@@ -220,11 +220,17 @@ unittest
     auto vertexStore = getTriangleVertexStore;
     VkBuffer[1] vertexBuffers;
 
-    assert(createVertexBuffer(vertexStore, fixture.device, vertexBuffers[0]));
+    assert(createVertexBuffer(vertexStore, fixture.device, vertexStore.getSize, vertexBuffers[0]));
+
+
 
     assert(recordCommandBuffer(fixture.commandRecordData,
             fixture.graphicsPipeline, vertexStore,
             vertexBuffers, imageIndex, 0));
+
+    scope(exit) {
+        vkDestroyBuffer(fixture.device, vertexBuffers[0], null);
+    }
 }
 
 @("Testing submitCommandBuffer")
@@ -243,9 +249,9 @@ unittest
 
     auto vertexStore = getTriangleVertexStore;
     VkBuffer[1] vertexBuffers;
-    createVertexBuffer(vertexStore, fixture.device, vertexBuffers[0]);
+    createVertexBuffer(vertexStore, fixture.device, vertexStore.getSize, vertexBuffers[0]);
 
-    assert(createVertexBuffer(vertexStore, fixture.device, vertexBuffers[0]));
+    assert(createVertexBuffer(vertexStore, fixture.device, vertexStore.getSize, vertexBuffers[0]));
 
     assert(recordCommandBuffer(fixture.commandRecordData, fixture.graphicsPipeline, vertexStore, vertexBuffers, imageIndex, 0));
     assert(submitCommandBuffer(fixture.graphicsQueue, fixture.presentQueue, syncObjects, fixture.commandBuffers[0], fixture
@@ -278,7 +284,7 @@ bool recordCommandBuffer(ref CommandRecordData commandRecordData, ref VkPipeline
     vkCmdBindVertexBuffers(commandRecordData.commandBuffers[currentFrame], 0, 1,
         numberOfvertexBuffers.ptr, offsets.ptr);
 
-    vkCmdDraw(commandRecordData.commandBuffers[currentFrame], cast(uint32_t)vertexStore.vertices.length, 1, 0, 0);
+    vkCmdDraw(commandRecordData.commandBuffers[currentFrame], cast(uint32_t) vertexStore.vertices.length, 1, 0, 0);
 
     vkCmdEndRenderPass(commandRecordData.commandBuffers[currentFrame]);
 

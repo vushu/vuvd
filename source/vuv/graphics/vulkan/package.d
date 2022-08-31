@@ -74,19 +74,14 @@ struct Vulkan
 
         assert(createRenderPass(_device, renderPassCreateInfo, _renderPass));
 
-        // createLayoutNGraphicsPipeline();
-
-        // //creating framebuffers
-        // _swapchainFramebuffers = createSwapchainFramebuffers(_device, _imageViews, _renderPass, _swapchainData
-        //         .swapChainExtent);
-
         assert(createCommandPool(_device, _queueFamilyIndices.graphicsFamily.get, _commandPool));
 
-        createVertexBufferData();
-
+        createVertexBufferData(this);
+        //Creating commandBuffers
         assert(createCommandBuffer(_device, _commandPool, getMaxFramesInFlight, _commandBuffers));
 
         createLayoutNGraphicsPipeline();
+
         _swapchainFramebuffers = createSwapchainFramebuffers(_device, _imageViews, _renderPass, _swapchainData
                 .swapChainExtent);
         writeln("Successfully created vulkan context");
@@ -94,25 +89,6 @@ struct Vulkan
         _recordData = CommandRecordData(_commandBuffers, _renderPass, _swapchainFramebuffers, _swapchainData
                 .swapChainExtent);
         _syncObjects = createSyncObjects(_device, getMaxFramesInFlight);
-
-    }
-
-    void createVertexBufferData()
-    {
-        _vertexStore = getTriangleVertexStore;
-        _vertexBuffers.length = 1;
-        assert(createVertexBuffer(_vertexStore, _device, _vertexBuffers[0]));
-        // memory
-        VkMemoryRequirements memoryRequirements;
-        getMemoryRequirements(_device, _vertexBuffers[0], memoryRequirements);
-        uint result = findMemoryType(_physicalDevice, memoryRequirements.memoryTypeBits,
-            VkMemoryPropertyFlagBits.VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VkMemoryPropertyFlagBits
-                .VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-        assert(result > 0);
-        assert(allocateMemory(_device, _physicalDevice, memoryRequirements, _vertexBufferMemory));
-        // binding test
-        bindMemory(_device, _vertexBuffers[0], _vertexBufferMemory);
-        mapVertexDataToVertexBuffer(_device, _vertexStore, _vertexBuffers[0], _vertexBufferMemory);
 
     }
 
@@ -177,6 +153,9 @@ struct Vulkan
                 _queueFamilyIndices.graphicsFamily.get, _queueFamilyIndices.presentFamily.get));
         _swapchainImages = getSwapchainImages(_device, _swapchain);
         _imageViews = createImageViews(_device, _swapchainImages, _swapchainData);
+
+        // createVertexBufferData;
+
         _swapchainFramebuffers = createSwapchainFramebuffers(_device, _imageViews, _renderPass, _swapchainData
                 .swapChainExtent);
 
@@ -287,6 +266,12 @@ void drawFrame(ref Vulkan vulkan)
     {
         debug writeln("Failed to submit ");
     }
+}
+
+void createVertexBufferData(ref Vulkan vulkan)
+{
+    createVertexBufferMapping(vulkan._physicalDevice, vulkan._device,
+        vulkan._vertexStore, vulkan._vertexBuffers, vulkan._vertexBufferMemory);
 }
 
 void waitIdle(ref Vulkan vulkan)
