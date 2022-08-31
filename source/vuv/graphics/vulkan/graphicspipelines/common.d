@@ -92,18 +92,19 @@ VkPipelineDynamicStateCreateInfo createDynamicStates(ref VkDynamicState[] dynami
     return dynamicStateCreateInfo;
 }
 
-// VkPipelineVertexInputStateCreateInfo addAttributeDescriptions(
-//     VkPipelineVertexInputStateCreateInfo vertexInputInfo,
-//     VkVertexInputBindingDescription bindingDescription,
-//     VkVertexInputAttributeDescription[2] attributesDescriptions)
+VkPipelineVertexInputStateCreateInfo vertexInputWithAttributeDescriptions(
+    ref VkVertexInputBindingDescription[1] bindingDescriptions,
+    ref VkVertexInputAttributeDescription[2] attributesDescriptions)
 
-// {
-//     vertexInputInfo.vertexBindingDescriptionCount = 1;
-//     vertexInputInfo.vertexAttributeDescriptionCount = cast(uint32_t) attributesDescriptions.length;
-//     vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-//     vertexInputInfo.pVertexAttributeDescriptions = attributesDescriptions.ptr;
-//     return vertexInputInfo;
-// }
+{
+    auto vertexInputInfo = createVertexInput();
+
+    vertexInputInfo.vertexBindingDescriptionCount = bindingDescriptions.length;
+    vertexInputInfo.vertexAttributeDescriptionCount = attributesDescriptions.length;
+    vertexInputInfo.pVertexBindingDescriptions = bindingDescriptions.ptr;
+    vertexInputInfo.pVertexAttributeDescriptions = attributesDescriptions.ptr;
+    return vertexInputInfo;
+}
 
 VkPipelineVertexInputStateCreateInfo createVertexInput()
 {

@@ -17,12 +17,15 @@ version (unittest)
     {
         VkDevice device;
         VkPhysicalDevice physicalDevice;
-        VkBuffer vertexBuffer;
+        VkBuffer[] vertexBuffers;
         VertexStore vertexStore;
         RefCounted!TestCommandBufferFixture commandBufferFixture;
         ~this()
         {
-            vkDestroyBuffer(device, vertexBuffer, null);
+            foreach (buffer; vertexBuffers)
+            {
+                vkDestroyBuffer(device, buffer, null);
+            }
         }
     }
 
@@ -32,8 +35,10 @@ version (unittest)
         auto vertexStore = getTriangleVertexStore;
 
         VkBuffer vertexBuffer;
-        // assert(createVertexBuffer(vertexStore, fixture.device, vertexBuffer));
-        return TestMemoryFixture(fixture.device, fixture.physicalDevice, vertexBuffer, vertexStore, fixture);
+        assert(createVertexBuffer(vertexStore, fixture.device, vertexStore.getSize, vertexBuffer));
+        VkBuffer[] vertexBuffers;
+        vertexBuffers ~= vertexBuffer;
+        return TestMemoryFixture(fixture.device, fixture.physicalDevice, vertexBuffers, vertexStore, fixture);
     }
 
 }
@@ -43,7 +48,7 @@ unittest
 {
     auto fixture = getMemoryFixture;
     VkMemoryRequirements memoryRequirements;
-    getMemoryRequirements(fixture.device, fixture.vertexBuffer, memoryRequirements);
+    getMemoryRequirements(fixture.device, fixture.vertexBuffers[0], memoryRequirements);
 }
 
 void getMemoryRequirements(ref VkDevice device, ref VkBuffer vertexBuffer, out VkMemoryRequirements memoryRequirements)
@@ -57,7 +62,7 @@ unittest
 {
     auto fixture = getMemoryFixture;
     VkMemoryRequirements memoryRequirements;
-    getMemoryRequirements(fixture.device, fixture.vertexBuffer, memoryRequirements);
+    getMemoryRequirements(fixture.device, fixture.vertexBuffers[0], memoryRequirements);
     uint result = findMemoryType(fixture.physicalDevice, memoryRequirements.memoryTypeBits,
         VkMemoryPropertyFlagBits.VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VkMemoryPropertyFlagBits
             .VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
@@ -88,7 +93,7 @@ unittest
 {
     auto fixture = getMemoryFixture;
     VkMemoryRequirements memoryRequirements;
-    getMemoryRequirements(fixture.device, fixture.vertexBuffer, memoryRequirements);
+    getMemoryRequirements(fixture.device, fixture.vertexBuffers[0], memoryRequirements);
     uint result = findMemoryType(fixture.physicalDevice, memoryRequirements.memoryTypeBits,
         VkMemoryPropertyFlagBits.VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VkMemoryPropertyFlagBits
             .VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
@@ -96,9 +101,18 @@ unittest
     assert(result > 0);
     VkDeviceMemory vertexBufferMemory;
     assert(allocateMemory(fixture.device, fixture.physicalDevice, memoryRequirements, vertexBufferMemory));
+    bindMemory(fixture.device, fixture.vertexBuffers[0], vertexBufferMemory);
+    scope (exit)
+    {
+        vkFreeMemory(fixture.device, vertexBufferMemory, null);
+    }
+    mapVertexDataToVertexBuffer(fixture.device, fixture.vertexStore, fixture.vertexBuffers[0], vertexBufferMemory);
+
 }
 
-bool allocateMemory(ref VkDevice device, ref VkPhysicalDevice physicalDevice, ref VkMemoryRequirements memoryRequirements, out VkDeviceMemory vertexBufferMemory)
+bool allocateMemory(ref VkDevice device, ref VkPhysicalDevice physicalDevice,
+    ref VkMemoryRequirements memoryRequirements,
+    out VkDeviceMemory vertexBufferMemory)
 {
     VkMemoryAllocateInfo allocInfo;
     allocInfo.sType = VkStructureType.VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
@@ -116,7 +130,7 @@ unittest
     auto fixture = getMemoryFixture;
 
     VkMemoryRequirements memoryRequirements;
-    getMemoryRequirements(fixture.device, fixture.vertexBuffer, memoryRequirements);
+    getMemoryRequirements(fixture.device, fixture.vertexBuffers[0], memoryRequirements);
     uint result = findMemoryType(fixture.physicalDevice, memoryRequirements.memoryTypeBits,
         VkMemoryPropertyFlagBits.VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VkMemoryPropertyFlagBits
             .VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
@@ -125,7 +139,7 @@ unittest
     VkDeviceMemory vertexBufferMemory;
     assert(allocateMemory(fixture.device, fixture.physicalDevice, memoryRequirements, vertexBufferMemory));
     // binding test
-    bindMemory(fixture.device, fixture.vertexBuffer, vertexBufferMemory);
+    bindMemory(fixture.device, fixture.vertexBuffers[0], vertexBufferMemory);
     scope (exit)
     {
         vkFreeMemory(fixture.device, vertexBufferMemory, null);
@@ -183,4 +197,25 @@ void mapVertexDataToVertexBuffer(ref VkDevice device, ref VertexStore vertexStor
     vkMapMemory(device, vertexBufferMemory, 0, vertexStore.getSize, 0, &data);
     memcpy(data, cast(void*) vertexStore.vertices, cast(size_t) vertexStore.getSize);
     vkUnmapMemory(device, vertexBufferMemory);
+}
+
+package:
+
+void createVertexBufferMapping(ref VkPhysicalDevice physicalDevice, ref VkDevice device,
+    ref VertexStore vertexStore, ref VkBuffer[] vertexBuffers, ref VkDeviceMemory vertexBufferMemory)
+{
+    vertexStore = getTriangleVertexStore;
+    vertexBuffers.length = 1;
+    assert(createVertexBuffer(vertexStore, device, vertexStore.getSize, vertexBuffers[0]));
+    // memory
+    VkMemoryRequirements memoryRequirements;
+    getMemoryRequirements(device, vertexBuffers[0], memoryRequirements);
+    uint result = findMemoryType(physicalDevice, memoryRequirements.memoryTypeBits,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    assert(result > 0);
+    assert(allocateMemory(device, physicalDevice, memoryRequirements, vertexBufferMemory));
+    // binding test
+    bindMemory(device, vertexBuffers[0], vertexBufferMemory);
+    mapVertexDataToVertexBuffer(device, vertexStore, vertexBuffers[0], vertexBufferMemory);
+
 }

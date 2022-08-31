@@ -2,6 +2,7 @@ module vuv.graphics.vulkan.framebuffer;
 import erupted;
 import std.typecons : RefCounted, Unique;
 import std.algorithm : move;
+import unit_threaded: Tags;
 
 debug import std.stdio;
 
@@ -82,6 +83,7 @@ version (unittest)
     }
 }
 
+@Tags("createSwapchainFramebuffers")
 @("Testing createSwapchainFramebuffers")
 unittest
 {
