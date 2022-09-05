@@ -201,24 +201,6 @@ void mapVertexDataToVertexBuffer(ref VkDevice device, ref VertexStore vertexStor
 
 package:
 
-// void createVertexBufferMapping(ref VkPhysicalDevice physicalDevice, ref VkDevice device,
-//     ref VertexStore vertexStore, ref VkBuffer[] vertexBuffers, VkBufferUsageFlags usage, VkMemoryPropertyFlags memoryProperties,
-//     ref VkDeviceMemory vertexBufferMemory)
-// {
-//     vertexStore = getTriangleVertexStore;
-//     vertexBuffers.length = 1;
-//     assert(createVertexBuffer(vertexStore, device, vertexStore.getSize, usage, vertexBuffers[0]));
-//     // memory
-//     VkMemoryRequirements memoryRequirements;
-//     getMemoryRequirements(device, vertexBuffers[0], memoryRequirements);
-//     uint result = findMemoryType(physicalDevice, memoryRequirements.memoryTypeBits, memoryProperties);
-//     assert(result > 0);
-//     assert(allocateMemory(device, physicalDevice, memoryRequirements, vertexBufferMemory));
-//     bindMemory(device, vertexBuffers[0], vertexBufferMemory);
-//     mapVertexDataToVertexBuffer(device, vertexStore, vertexBufferMemory);
-
-// }
-
 void createVertexBufferHighPerformance(ref VkPhysicalDevice physicalDevice, ref VkDevice device,
     ref VertexStore vertexStore, ref VkBuffer vertexBuffer,
     ref VkDeviceMemory vertexBufferMemory, ref VkCommandPool commandPool, ref VkQueue graphicsQueue)

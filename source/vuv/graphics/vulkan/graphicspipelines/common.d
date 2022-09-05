@@ -280,8 +280,9 @@ GraphicsPipelineCreateInfos createGraphicsPipelineCreateInfos(ref VkDevice devic
     graphicsCreateInfo.pipelineLayout = pipelineLayout;
     graphicsCreateInfo.renderPass = renderPass;
     graphicsCreateInfo.shaderStages = renderStages;
-    graphicsCreateInfo.vertexInputCreateInfo = addAttributeDescriptions(
-        createVertexInput(), getBindingDescription, getAttributeDescriptions);
+    graphicsCreateInfo.vertexInputCreateInfo =
+        vertexInputWithAttributeDescriptions(
+            getBindingDescriptions, getAttributeDescriptions);
 
     // graphicsCreateInfo.vertexInputCreateInfo = createVertexInput;
     graphicsCreateInfo.vertexInputAssemblyCreateInfo = createInputAssemblyWithTriangle();
