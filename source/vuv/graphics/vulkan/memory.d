@@ -35,7 +35,7 @@ version (unittest)
         auto vertexStore = getTriangleVertexStore;
 
         VkBuffer vertexBuffer;
-        assert(createVertexBuffer(vertexStore, fixture.device, vertexStore.getSize, VkBufferUsageFlagBits
+        assert(createVertexBuffer(fixture.device, vertexStore.getSize, VkBufferUsageFlagBits
                 .VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, vertexBuffer));
         VkBuffer[] vertexBuffers;
         vertexBuffers ~= vertexBuffer;

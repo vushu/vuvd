@@ -85,7 +85,7 @@ unittest
     auto fixture = getRefCountedCommandBufferFixture;
     auto store = getTriangleVertexStore();
     VkBuffer buffer;
-    store.createVertexBuffer(fixture.device, store.getSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, buffer)
+    createVertexBuffer(fixture.device, store.getSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, buffer)
         .shouldBeTrue;
     vkDestroyBuffer(fixture.device, buffer, null);
 }
