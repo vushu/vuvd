@@ -51,13 +51,13 @@ void addVertex(ref VertexStore vertexStore, Vector2 position, Vector3 color)
 unittest
 {
     auto store = getTriangleVertexStore();
-    writelnUt("Size OF Vertex: ", Vertex.sizeof);
+    // writelnUt("Size OF Vertex: ", Vertex.sizeof);
 
-    writelnUt("Size OF VERTEXSTORE: ", store.sizeof - 12);
-    writelnUt("Size OF VEC2: ", vec2f.sizeof);
-    writelnUt("Size OF VEC3: ", vec3f.sizeof);
+    // writelnUt("Size OF VERTEXSTORE: ", store.sizeof - 12);
+    // writelnUt("Size OF VEC2: ", vec2f.sizeof);
+    // writelnUt("Size OF VEC3: ", vec3f.sizeof);
     assert(store.getSize == (vec2f.sizeof + vec3f.sizeof) * 3);
-    writelnUt("Size of VertexStore ", cast(size_t)(vec2f.sizeof + vec3f.sizeof) * 3);
+    // writelnUt("Size of VertexStore ", cast(size_t)(vec2f.sizeof + vec3f.sizeof) * 3);
 
 }
 
@@ -85,16 +85,18 @@ unittest
     auto fixture = getRefCountedCommandBufferFixture;
     auto store = getTriangleVertexStore();
     VkBuffer buffer;
-    // store.createVertexBuffer(fixture.device, store.getSize, buffer).shouldBeTrue;
-    // vkDestroyBuffer(fixture.device, buffer, null);
+    store.createVertexBuffer(fixture.device, store.getSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, buffer)
+        .shouldBeTrue;
+    vkDestroyBuffer(fixture.device, buffer, null);
 }
 
-bool createVertexBuffer(ref VertexStore vertexStore, ref VkDevice device, VkDeviceSize size, out VkBuffer vertexBuffer)
+bool createVertexBuffer(ref VkDevice device, VkDeviceSize size,
+    VkBufferUsageFlags usage, out VkBuffer vertexBuffer)
 {
     VkBufferCreateInfo bufferInfo;
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     bufferInfo.size = size;
-    bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    bufferInfo.usage = usage;
     bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
     return vkCreateBuffer(device, &bufferInfo, null, &vertexBuffer) == VK_SUCCESS;

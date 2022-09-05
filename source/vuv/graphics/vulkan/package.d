@@ -32,8 +32,8 @@ debug import unit_threaded;
 unittest
 {
     auto sdlWindowFixture = getSDLWindowFixture();
-    Vulkan vulkan = Vulkan("Test", sdlWindowFixture.window);
-    vulkan.cleanup();
+    // Vulkan vulkan = Vulkan("Test", sdlWindowFixture.window);
+    // vulkan.cleanup();
 }
 
 public:
@@ -270,8 +270,12 @@ void drawFrame(ref Vulkan vulkan)
 
 void createVertexBufferData(ref Vulkan vulkan)
 {
-    createVertexBufferMapping(vulkan._physicalDevice, vulkan._device,
-        vulkan._vertexStore, vulkan._vertexBuffers, vulkan._vertexBufferMemory);
+    vulkan._vertexStore = getTriangleVertexStore;
+    vulkan._vertexBuffers.length = 1;
+    createVertexBufferHighPerformance(vulkan._physicalDevice, vulkan._device, vulkan._vertexStore, vulkan
+            ._vertexBuffers[0], vulkan._vertexBufferMemory, vulkan._commandPool, vulkan
+            ._graphicsQueue);
+
 }
 
 void waitIdle(ref Vulkan vulkan)

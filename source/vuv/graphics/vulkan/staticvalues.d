@@ -57,3 +57,13 @@ private static VkVertexInputBindingDescription[1] _bindingDescription = [
 private static VkDynamicState[] _dynamicStates = [
     VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR
 ];
+
+VkBufferUsageFlags getVertexUsage()
+{
+    return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+}
+
+VkMemoryPropertyFlags getMemoryProperty()
+{
+    return VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+}

@@ -219,16 +219,16 @@ unittest
 
     auto vertexStore = getTriangleVertexStore;
     VkBuffer[1] vertexBuffers;
+    auto usage = VkBufferUsageFlagBits.VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 
-    assert(createVertexBuffer(vertexStore, fixture.device, vertexStore.getSize, vertexBuffers[0]));
-
-
+    assert(createVertexBuffer(vertexStore, fixture.device, vertexStore.getSize, usage, vertexBuffers[0]));
 
     assert(recordCommandBuffer(fixture.commandRecordData,
             fixture.graphicsPipeline, vertexStore,
             vertexBuffers, imageIndex, 0));
 
-    scope(exit) {
+    scope (exit)
+    {
         vkDestroyBuffer(fixture.device, vertexBuffers[0], null);
     }
 }
@@ -249,9 +249,9 @@ unittest
 
     auto vertexStore = getTriangleVertexStore;
     VkBuffer[1] vertexBuffers;
-    createVertexBuffer(vertexStore, fixture.device, vertexStore.getSize, vertexBuffers[0]);
 
-    assert(createVertexBuffer(vertexStore, fixture.device, vertexStore.getSize, vertexBuffers[0]));
+    auto usage = VkBufferUsageFlagBits.VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    assert(createVertexBuffer(vertexStore, fixture.device, vertexStore.getSize, usage, vertexBuffers[0]));
 
     assert(recordCommandBuffer(fixture.commandRecordData, fixture.graphicsPipeline, vertexStore, vertexBuffers, imageIndex, 0));
     assert(submitCommandBuffer(fixture.graphicsQueue, fixture.presentQueue, syncObjects, fixture.commandBuffers[0], fixture

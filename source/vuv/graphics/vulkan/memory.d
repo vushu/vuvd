@@ -35,7 +35,8 @@ version (unittest)
         auto vertexStore = getTriangleVertexStore;
 
         VkBuffer vertexBuffer;
-        assert(createVertexBuffer(vertexStore, fixture.device, vertexStore.getSize, vertexBuffer));
+        assert(createVertexBuffer(vertexStore, fixture.device, vertexStore.getSize, VkBufferUsageFlagBits
+                .VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, vertexBuffer));
         VkBuffer[] vertexBuffers;
         vertexBuffers ~= vertexBuffer;
         return TestMemoryFixture(fixture.device, fixture.physicalDevice, vertexBuffers, vertexStore, fixture);
@@ -106,7 +107,7 @@ unittest
     {
         vkFreeMemory(fixture.device, vertexBufferMemory, null);
     }
-    mapVertexDataToVertexBuffer(fixture.device, fixture.vertexStore, fixture.vertexBuffers[0], vertexBufferMemory);
+    mapVertexDataToVertexBuffer(fixture.device, fixture.vertexStore, vertexBufferMemory);
 
 }
 
@@ -189,11 +190,10 @@ void bindMemory(ref VkDevice device, ref VkBuffer vertexBuffer, ref VkDeviceMemo
     vkBindBufferMemory(device, vertexBuffer, vertexBufferMemory, 0);
 }
 
-void mapVertexDataToVertexBuffer(ref VkDevice device, ref VertexStore vertexStore, ref VkBuffer vertexBuffer,
+void mapVertexDataToVertexBuffer(ref VkDevice device, ref VertexStore vertexStore,
     ref VkDeviceMemory vertexBufferMemory)
 {
     void* data;
-    assert(vertexStore.getSize == vertexStore.vertices.length * vertexStore.vertices[0].sizeof);
     vkMapMemory(device, vertexBufferMemory, 0, vertexStore.getSize, 0, &data);
     memcpy(data, cast(void*) vertexStore.vertices, cast(size_t) vertexStore.getSize);
     vkUnmapMemory(device, vertexBufferMemory);
@@ -201,21 +201,94 @@ void mapVertexDataToVertexBuffer(ref VkDevice device, ref VertexStore vertexStor
 
 package:
 
-void createVertexBufferMapping(ref VkPhysicalDevice physicalDevice, ref VkDevice device,
-    ref VertexStore vertexStore, ref VkBuffer[] vertexBuffers, ref VkDeviceMemory vertexBufferMemory)
+// void createVertexBufferMapping(ref VkPhysicalDevice physicalDevice, ref VkDevice device,
+//     ref VertexStore vertexStore, ref VkBuffer[] vertexBuffers, VkBufferUsageFlags usage, VkMemoryPropertyFlags memoryProperties,
+//     ref VkDeviceMemory vertexBufferMemory)
+// {
+//     vertexStore = getTriangleVertexStore;
+//     vertexBuffers.length = 1;
+//     assert(createVertexBuffer(vertexStore, device, vertexStore.getSize, usage, vertexBuffers[0]));
+//     // memory
+//     VkMemoryRequirements memoryRequirements;
+//     getMemoryRequirements(device, vertexBuffers[0], memoryRequirements);
+//     uint result = findMemoryType(physicalDevice, memoryRequirements.memoryTypeBits, memoryProperties);
+//     assert(result > 0);
+//     assert(allocateMemory(device, physicalDevice, memoryRequirements, vertexBufferMemory));
+//     bindMemory(device, vertexBuffers[0], vertexBufferMemory);
+//     mapVertexDataToVertexBuffer(device, vertexStore, vertexBufferMemory);
+
+// }
+
+void createVertexBufferHighPerformance(ref VkPhysicalDevice physicalDevice, ref VkDevice device,
+    ref VertexStore vertexStore, ref VkBuffer vertexBuffer,
+    ref VkDeviceMemory vertexBufferMemory, ref VkCommandPool commandPool, ref VkQueue graphicsQueue)
 {
-    vertexStore = getTriangleVertexStore;
-    vertexBuffers.length = 1;
-    assert(createVertexBuffer(vertexStore, device, vertexStore.getSize, vertexBuffers[0]));
-    // memory
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingBufferMemory;
+
+    auto memProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+
+    createBuffer(physicalDevice, device, vertexStore.getSize, stagingBuffer, VkBufferUsageFlagBits
+            .VK_BUFFER_USAGE_TRANSFER_SRC_BIT, memProperties, stagingBufferMemory);
+
+    mapVertexDataToVertexBuffer(device, vertexStore, stagingBufferMemory);
+
+    auto stagingBufferUsage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+
+    createBuffer(physicalDevice, device, vertexStore.getSize, vertexBuffer, stagingBufferUsage,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        vertexBufferMemory);
+
+    copyBuffer(device, commandPool, stagingBuffer, vertexBuffer, vertexStore.getSize, graphicsQueue);
+
+    vkDestroyBuffer(device, stagingBuffer, null);
+    vkFreeMemory(device, stagingBufferMemory, null);
+
+}
+
+void createBuffer(ref VkPhysicalDevice physicalDevice, ref VkDevice device,
+    VkDeviceSize size, ref VkBuffer vertexBuffer, VkBufferUsageFlags usage, VkMemoryPropertyFlags memoryProperties,
+    ref VkDeviceMemory vertexBufferMemory)
+{
+
+    assert(createVertexBuffer(device, size, usage, vertexBuffer));
     VkMemoryRequirements memoryRequirements;
-    getMemoryRequirements(device, vertexBuffers[0], memoryRequirements);
-    uint result = findMemoryType(physicalDevice, memoryRequirements.memoryTypeBits,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    getMemoryRequirements(device, vertexBuffer, memoryRequirements);
+    uint result = findMemoryType(physicalDevice, memoryRequirements.memoryTypeBits, memoryProperties);
     assert(result > 0);
     assert(allocateMemory(device, physicalDevice, memoryRequirements, vertexBufferMemory));
-    // binding test
-    bindMemory(device, vertexBuffers[0], vertexBufferMemory);
-    mapVertexDataToVertexBuffer(device, vertexStore, vertexBuffers[0], vertexBufferMemory);
+    bindMemory(device, vertexBuffer, vertexBufferMemory);
+}
+
+void copyBuffer(ref VkDevice device, ref VkCommandPool commandPool, ref VkBuffer srcBuffer, ref VkBuffer dstBuffer, VkDeviceSize size, ref VkQueue graphicsQueue)
+{
+    VkCommandBufferAllocateInfo allocInfo;
+    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandPool = commandPool;
+    allocInfo.commandBufferCount = 1;
+
+    VkCommandBuffer commandBuffer;
+    vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer);
+    VkCommandBufferBeginInfo beginInfo;
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+    vkBeginCommandBuffer(commandBuffer, &beginInfo);
+
+    VkBufferCopy copyRegion;
+    copyRegion.size = size;
+    vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+
+    vkEndCommandBuffer(commandBuffer);
+
+    VkSubmitInfo submitInfo;
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &commandBuffer;
+
+    vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+    vkQueueWaitIdle(graphicsQueue);
+    vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
 
 }
