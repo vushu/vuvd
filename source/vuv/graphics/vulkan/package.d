@@ -154,7 +154,7 @@ struct Vulkan
         _swapchainImages = getSwapchainImages(_device, _swapchain);
         _imageViews = createImageViews(_device, _swapchainImages, _swapchainData);
 
-        // createVertexBufferData;
+        createVertexBufferData(this);
 
         _swapchainFramebuffers = createSwapchainFramebuffers(_device, _imageViews, _renderPass, _swapchainData
                 .swapChainExtent);
