@@ -148,6 +148,7 @@ struct Vulkan
 
         cleanupSwapchain();
         vkDestroyBuffer(_device, _vertexBuffers[0], null);
+        vkFreeMemory(_device, _vertexBufferMemory, null);
 
         assert(createSwapchain(_device, _physicalDevice, _surface, _sdlWindow, _swapchain, _swapchainData,
                 _queueFamilyIndices.graphicsFamily.get, _queueFamilyIndices.presentFamily.get));
