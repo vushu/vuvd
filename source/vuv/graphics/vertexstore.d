@@ -32,6 +32,7 @@ struct Vertex
 struct VertexStore
 {
     Vertex[] vertices;
+    uint[] indices;
 }
 
 void add(ref VertexStore vertexStore, Vertex vertex)
@@ -56,8 +57,8 @@ unittest
     // writelnUt("Size OF VERTEXSTORE: ", store.sizeof - 12);
     // writelnUt("Size OF VEC2: ", vec2f.sizeof);
     // writelnUt("Size OF VEC3: ", vec3f.sizeof);
-    assert(store.getSize == (vec2f.sizeof + vec3f.sizeof) * 3);
-    // writelnUt("Size of VertexStore ", cast(size_t)(vec2f.sizeof + vec3f.sizeof) * 3);
+    assert(store.getSize == (vec2f.sizeof + vec3f.sizeof) * store.vertices.length);
+    writelnUt("Size of VertexStore ", cast(size_t)(vec2f.sizeof + vec3f.sizeof) * store.vertices.length);
 
 }
 
@@ -66,16 +67,33 @@ ulong getSize(ref VertexStore vertexStore)
     return Vertex.sizeof * vertexStore.vertices.length;
 }
 
+ulong getIndicesSize(ref VertexStore vertexStore)
+{
+    return uint.sizeof * vertexStore.indices.length;
+}
+
 VertexStore getTriangleVertexStore()
 {
     VertexStore vertexStore;
-    vertexStore.add(Vertex([0.0f, -0.5f], [1.0f, 0.0f, 0.0f]));
-    vertexStore.add(Vertex([0.5f, 0.5f], [0.0f, 1.0f, 0.0f]));
-    vertexStore.add(Vertex([-0.5f, 0.5f], [0.0f, 0.0f, 1.0f]));
-    // vertexStore.addVertex(Vector2(0.0f, -0.5f), Vector3(1.0f, 0.0f, 0.0f));
-    // vertexStore.addVertex(Vector2(0.5f, 0.5f), Vector3(0.0f, 1.0f, 0.0f));
-    // vertexStore.addVertex(Vector2(-0.5f, 0.5f), Vector3(0.0f, 0.0f, 1.0f));
+
+    vertexStore.add(Vertex([-0.5f, -0.5f], [1.0f, 0.0f, 0.0f]));
+    vertexStore.add(Vertex([0.5f, -0.5f], [0.0f, 1.0f, 0.0f]));
+    vertexStore.add(Vertex([0.5f, 0.5f], [0.0f, 0.0f, 1.0f]));
+    vertexStore.add(Vertex([-0.5f, 0.5f], [1.0f, 1.0f, 1.0f]));
+    // vertexStore.add(Vertex([-0.5f, -0.5f], [1.0f, 0.0f, 0.0f]));
+    // vertexStore.add(Vertex([0.5f, 0.5f], [0.0f, 0.0f, 1.0f]));
+    // vertexStore.add(Vertex([0.5f, 0.5f], [0.0f, 0.0f, 1.0f]));
+    vertexStore.indices = getIndices;
+
+    // vertexStore.add(Vertex([0.0f, -0.5f], [1.0f, 0.0f, 0.0f]));
+    // vertexStore.add(Vertex([0.5f, 0.5f], [0.0f, 1.0f, 0.0f]));
+    // vertexStore.add(Vertex([-0.5f, 0.5f], [0.0f, 0.0f, 1.0f]));
     return vertexStore;
+}
+
+uint[] getIndices()
+{
+    return [0, 1, 2, 2, 3, 0];
 }
 
 @Tags("createVertexBuffer")

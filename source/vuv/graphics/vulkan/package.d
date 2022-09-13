@@ -76,7 +76,7 @@ struct Vulkan
 
         assert(createCommandPool(_device, _queueFamilyIndices.graphicsFamily.get, _commandPool));
 
-        createVertexBufferData(this);
+        createVertexStoreBuffers(this);
         //Creating commandBuffers
         assert(createCommandBuffer(_device, _commandPool, getMaxFramesInFlight, _commandBuffers));
 
@@ -122,8 +122,7 @@ struct Vulkan
         vkDestroyPipelineLayout(_device, _pipelineLayout, null);
         vkDestroyRenderPass(_device, _renderPass, null);
 
-        vkDestroyBuffer(_device, _vertexBuffers[0], null);
-        vkFreeMemory(_device, _vertexBufferMemory, null);
+        cleanupBufferMemories(_device, _vertexBuffers, _vertexBufferMemories);
 
         cleanupSyncObjects(_syncObjects, _device);
         // cleanupImageView(_imageViews, _device);
@@ -147,15 +146,16 @@ struct Vulkan
         vkDeviceWaitIdle(_device);
 
         cleanupSwapchain();
-        vkDestroyBuffer(_device, _vertexBuffers[0], null);
-        vkFreeMemory(_device, _vertexBufferMemory, null);
+        cleanupBufferMemories(_device, _vertexBuffers, _vertexBufferMemories);
+        // vkDestroyBuffer(_device, _vertexBuffers[0], null);
+        // vkFreeMemory(_device, _vertexBufferMemory, null);
 
         assert(createSwapchain(_device, _physicalDevice, _surface, _sdlWindow, _swapchain, _swapchainData,
                 _queueFamilyIndices.graphicsFamily.get, _queueFamilyIndices.presentFamily.get));
         _swapchainImages = getSwapchainImages(_device, _swapchain);
         _imageViews = createImageViews(_device, _swapchainImages, _swapchainData);
 
-        createVertexBufferData(this);
+        createVertexStoreBuffers(this);
 
         _swapchainFramebuffers = createSwapchainFramebuffers(_device, _imageViews, _renderPass, _swapchainData
                 .swapChainExtent);
@@ -199,7 +199,7 @@ private:
     uint _currentFrame = 0;
     VertexStore _vertexStore;
     VkBuffer[] _vertexBuffers;
-    VkDeviceMemory _vertexBufferMemory;
+    VkDeviceMemory[] _vertexBufferMemories;
 }
 
 void drawFrame(ref Vulkan vulkan)
@@ -269,13 +269,17 @@ void drawFrame(ref Vulkan vulkan)
     }
 }
 
-void createVertexBufferData(ref Vulkan vulkan)
+void createVertexStoreBuffers(ref Vulkan vulkan)
 {
     vulkan._vertexStore = getTriangleVertexStore;
-    vulkan._vertexBuffers.length = 1;
+    vulkan._vertexBuffers.length = 2;
+    vulkan._vertexBufferMemories.length = 2;
+
     createVertexBufferHighPerformance(vulkan._physicalDevice, vulkan._device, vulkan._vertexStore, vulkan
-            ._vertexBuffers[0], vulkan._vertexBufferMemory, vulkan._commandPool, vulkan
+            ._vertexBuffers[0], vulkan._vertexBufferMemories[0], vulkan._commandPool, vulkan
             ._graphicsQueue);
+    createIndexBuffer(vulkan._physicalDevice, vulkan._device, vulkan._commandPool, vulkan._vertexStore, vulkan
+            ._graphicsQueue, vulkan._vertexBuffers[1], vulkan._vertexBufferMemories[1]);
 
 }
 
@@ -286,9 +290,6 @@ void waitIdle(ref Vulkan vulkan)
 
 void resizeCallback(ref Vulkan vulkan, int width, int height)
 {
-    debug writeln("resizing vulkan callback");
-    debug writeln("resizing vulkan callback");
-    debug writeln("resizing vulkan callback");
     debug writeln("resizing vulkan callback");
     debug writeln("width ", width);
     debug writeln("height ", height);

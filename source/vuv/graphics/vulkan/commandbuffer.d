@@ -103,13 +103,6 @@ version (unittest)
                 graphicsPipeline, graphicsQueue, presentQueue, recordData, fixture);
         }
     }
-
-    // RefCounted!TestCommandBufferFixture getRefCountedCommandBufferFixture()
-    // {
-    //     // auto fixture = getCommandBufferFixture;
-    //     // return RefCounted!TestCommandBufferFixture(refCounted(fixture));
-    // }
-
 }
 
 @("Testing createCommandPoolAndBuffer")
@@ -284,7 +277,11 @@ bool recordCommandBuffer(ref CommandRecordData commandRecordData, ref VkPipeline
     vkCmdBindVertexBuffers(commandRecordData.commandBuffers[currentFrame], 0, 1,
         numberOfvertexBuffers.ptr, offsets.ptr);
 
-    vkCmdDraw(commandRecordData.commandBuffers[currentFrame], cast(uint32_t) vertexStore.vertices.length, 1, 0, 0);
+    // using index buffer which is index of 1 so vertextBuffers[1]
+    vkCmdBindIndexBuffer(commandRecordData.commandBuffers[currentFrame], vertexBuffers[1], 0, VK_INDEX_TYPE_UINT32);
+
+    vkCmdDrawIndexed(commandRecordData.commandBuffers[currentFrame], cast(uint32_t) vertexStore.indices.length,
+        1, 0, 0, 0);
 
     vkCmdEndRenderPass(commandRecordData.commandBuffers[currentFrame]);
 
